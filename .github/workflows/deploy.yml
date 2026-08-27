@@ -1,0 +1,28 @@
+# https://github.com/EPFL-ENAC/epfl-enac-build-push-deploy-action#readme
+#
+# Builds, pushes and deploys the backend and frontend images.
+#  - The deployment org/repo below must be adjusted for your project.
+#  - Push on `dev`/`stage` or tags `v*.*.*` triggers a deploy.
+name: deploy
+
+'on':
+  push:
+    branches:
+      - dev
+      - stage
+    tags: ['v*.*.*']
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{github.repository}}
+
+jobs:
+  deploy:
+    uses: EPFL-ENAC/epfl-enac-build-push-deploy-action/.github/workflows/deploy.yml@v3.1.0
+    secrets:
+      token: ${{ secrets.CD_TOKEN }}
+    with:
+      # TODO: adjust to the target deployment org and repo.
+      org: epfl-esstech
+      repo: dualuse
+      build_context: '["./backend", "./frontend"]' # Optional"

@@ -1,0 +1,31 @@
+[project]
+name = "dualuse"
+version = "0.1.0"
+description = "Example standalone package for the esstech-dualuse backend"
+readme = "README.md"
+authors = [
+    { name = "EPFL ENAC", email = "son.phamba@epfl.ch" }
+]
+requires-python = ">=3.10, <3.14"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[project.scripts]
+dualuse = "dualuse:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.setuptools]
+packages = ["dualuse"]
+
+[tool.codespell]
+skip = 'uv.lock,tests/**'
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
