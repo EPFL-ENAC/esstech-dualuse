@@ -18,7 +18,8 @@ pre-commit:
       root: frontend
       glob: "frontend/src/**/*.{js,ts,vue,scss,html,md,json}"
       exclude: "frontend/third-party/**"
-      run: npx prettier --write {staged_files} --ignore-path .gitignore && git add {staged_files}
+      run: npx prettier --write {staged_files} --ignore-path .gitignore
+      stage_fixed: true
     backend-typecheck:
       root: backend
       glob: "backend/{api,tests}/**/*.py"
@@ -26,11 +27,13 @@ pre-commit:
     backend-lint:
       root: backend
       glob: "backend/{api,tests}/**/*.py"
-      run: uvx ruff@0.15.13 check --fix --select I {staged_files} && git add {staged_files}
+      run: uvx ruff@0.15.13 check --fix --select I {staged_files}
+      stage_fixed: true
     backend-format:
       root: backend
       glob: "backend/{api,tests}/**/*.py"
-      run: uvx ruff@0.15.13 format {staged_files} && git add {staged_files}
+      run: uvx ruff@0.15.13 format {staged_files}
+      stage_fixed: true
     codespell:
       run: uvx codespell@2.4.2 --skip="frontend/package-lock.json" {staged_files}
 
