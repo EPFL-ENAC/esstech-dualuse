@@ -33,3 +33,6 @@ db-downgrade:
 
 db-revision:
 	cd backend && make db-revision name="$(name)"
+
+db-seed:
+	cd backend && make db-seed

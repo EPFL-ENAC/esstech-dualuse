@@ -19,6 +19,9 @@ db-downgrade:
 db-revision:
 	uv run dotenv -f "$(env_path)" run alembic revision --autogenerate -m "$(name)"
 
+db-seed:
+	uv run dotenv -f "$(env_path)" run python -m scripts.seed_cases
+
 typecheck:
 	uvx lefthook run pre-commit --command backend-typecheck --all-files
 

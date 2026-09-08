@@ -8,10 +8,28 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
 from api.config import config as app_config
-from api.models import Item
+from api.models import (
+    Case,
+    CaseEncounter,
+    CaseTaggedGate,
+    CaseTaggedPattern,
+    Commitment,
+    CounterCaseLink,
+    Item,
+    Session,
+)
 
 # Import the models so their tables are registered on SQLModel.metadata.
-_models = (Item,)
+_models = (
+    Case,
+    CaseEncounter,
+    CaseTaggedGate,
+    CaseTaggedPattern,
+    Commitment,
+    CounterCaseLink,
+    Item,
+    Session,
+)
 
 config = context.config
 
