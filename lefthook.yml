@@ -4,19 +4,22 @@
 pre-commit:
   parallel: true
   commands:
+    # The "{,**/}" in these globs matches src's own files as well as its
+    # subdirectories: a bare "**/" requires at least one directory, which
+    # silently skipped src/App.vue and src/env.d.ts.
     frontend-typecheck:
       root: frontend
-      glob: "frontend/src/**/*.{ts,vue}"
+      glob: "frontend/src/{,**/}*.{ts,vue}"
       exclude: "frontend/third-party/**"
       run: test -f .quasar/tsconfig.json || npx quasar prepare && npx vue-tsc --noEmit --project tsconfig.typecheck.json
     frontend-lint:
       root: frontend
-      glob: "frontend/src/**/*.{ts,js,cjs,mjs,vue}"
+      glob: "frontend/src/{,**/}*.{ts,js,cjs,mjs,vue}"
       exclude: "frontend/third-party/**"
       run: test -f .quasar/tsconfig.json || npx quasar prepare && npx eslint -c eslint.config.js {staged_files}
     frontend-format:
       root: frontend
-      glob: "frontend/src/**/*.{js,ts,vue,scss,html,md,json}"
+      glob: "frontend/src/{,**/}*.{js,ts,vue,scss,html,md,json}"
       exclude: "frontend/third-party/**"
       run: npx prettier --write {staged_files} --ignore-path .gitignore
       stage_fixed: true
