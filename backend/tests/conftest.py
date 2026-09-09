@@ -1,4 +1,5 @@
 import os
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -62,3 +63,56 @@ async def db_session():
         yield session
 
     await engine.dispose()
+
+
+@pytest.fixture
+def learner() -> dict[str, UUID]:
+    """The identity `app_client` requests run as.
+
+    A mutable holder rather than a plain value so a test can become a second
+    learner mid-test (`learner["id"] = uuid4()`), which is what the ownership
+    checks need. The override reads it per request.
+    """
+
+    return {"id": uuid4()}
+
+
+@pytest.fixture
+async def app_client(db_session, learner):
+    """An HTTP client whose endpoints run against `db_session`.
+
+    IMPORTANT: the API and the test share one session, so commit any fixture
+    data with `await db_session.commit()` *before* calling the API. A service
+    that hits a conflict rolls the session back, which silently discards
+    uncommitted setup rows -- the test then fails looking like missing data
+    rather than like the rollback it actually is.
+    """
+
+    from fastapi_cache import FastAPICache
+    from fastapi_cache.backends.inmemory import InMemoryBackend
+
+    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache-test")
+
+    from api.db import get_db_session
+    from api.dependencies import get_current_learner
+    from api.main import app
+
+    async def _override_session():
+        yield db_session
+
+    async def _override_learner() -> UUID:
+        return learner["id"]
+
+    app.dependency_overrides[get_db_session] = _override_session
+    app.dependency_overrides[get_current_learner] = _override_learner
+
+    # try/finally, not cleanup after the yield: a failing assertion propagates
+    # through the yield point, and `app` is a module-level singleton whose
+    # overrides would leak into every later test.
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    finally:
+        app.dependency_overrides.pop(get_db_session, None)
+        app.dependency_overrides.pop(get_current_learner, None)

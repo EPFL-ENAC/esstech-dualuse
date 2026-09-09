@@ -2,15 +2,20 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from logging import INFO, basicConfig, warning
 
-from fastapi import FastAPI, status
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from pydantic import BaseModel
 
 from api.config import config
 from api.db import create_db_and_tables, dispose_engine
+from api.services.errors import ServiceError
+from api.views.cases import router as cases_router
 from api.views.dummy import router as dummy_router
+from api.views.encounters import router as encounters_router
+from api.views.sessions import router as sessions_router
 
 basicConfig(level=INFO)
 
@@ -68,7 +73,29 @@ async def get_health() -> HealthCheck:
     return HealthCheck(status="OK")
 
 
+@app.exception_handler(ServiceError)
+async def handle_service_error(_: Request, exc: ServiceError) -> JSONResponse:
+    """Render a service-layer rejection, so services need no FastAPI import."""
+
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
 app.include_router(
     dummy_router,
     tags=["Dummy"],
+)
+
+app.include_router(
+    sessions_router,
+    tags=["Sessions"],
+)
+
+app.include_router(
+    cases_router,
+    tags=["Cases"],
+)
+
+app.include_router(
+    encounters_router,
+    tags=["Encounters"],
 )

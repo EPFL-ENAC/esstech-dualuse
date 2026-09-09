@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -93,5 +94,21 @@ async def get_session(db_url: str | None = None):
         operation_name="Database connection",
     )
 
-    async with AsyncSQLModelSession(e) as session:
+    # expire_on_commit=False: after a commit, expired attributes reload on
+    # access, and that implicit IO cannot run during plain attribute access
+    # under async SQLAlchemy -- it raises MissingGreenlet. Services read ids
+    # and fields off records they just wrote, so keep those loaded.
+    async with AsyncSQLModelSession(e, expire_on_commit=False) as session:
+        yield session
+
+
+async def get_db_session() -> AsyncIterator[AsyncSQLModelSession]:
+    """Route-facing session dependency.
+
+    Wraps `get_session` because FastAPI reads a dependency's signature: the
+    optional `db_url` argument would otherwise surface as a query parameter on
+    every endpoint, letting a caller point the app at another database.
+    """
+
+    async for session in get_session():
         yield session

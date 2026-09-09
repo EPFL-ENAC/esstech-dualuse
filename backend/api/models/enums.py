@@ -52,6 +52,14 @@ class SessionMode(str, Enum):
     LECTURE = "lecture"
 
 
+class MatchResult(str, Enum):
+    """How a learner's commitment compares to the case's main path."""
+
+    MATCH = "match"
+    PARTIAL_MATCH = "partial_match"
+    MISMATCH = "mismatch"
+
+
 class Pattern(str, Enum):
     """The 16 fixed dual-use reasoning patterns."""
 

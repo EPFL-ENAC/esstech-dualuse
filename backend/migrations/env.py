@@ -15,6 +15,7 @@ from api.models import (
     CaseTaggedPattern,
     Commitment,
     CounterCaseLink,
+    FeedbackRecord,
     Item,
     Session,
 )
@@ -27,6 +28,7 @@ _models = (
     CaseTaggedPattern,
     Commitment,
     CounterCaseLink,
+    FeedbackRecord,
     Item,
     Session,
 )
