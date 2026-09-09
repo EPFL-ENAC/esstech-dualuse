@@ -11,6 +11,7 @@
       </q-card-section>
 
       <q-card-actions align="right">
+        <q-btn color="primary" flat :label="t('studentOpen')" to="/student" />
         <q-btn color="primary" :label="t('fetchMessage')" unelevated @click="fetchMessage" />
       </q-card-actions>
     </q-card>
