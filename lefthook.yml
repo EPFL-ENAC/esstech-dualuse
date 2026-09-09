@@ -20,18 +20,30 @@ pre-commit:
       exclude: "frontend/third-party/**"
       run: npx prettier --write {staged_files} --ignore-path .gitignore
       stage_fixed: true
+    # The "{,**/}" in these globs matches a directory's own files as well as
+    # its subdirectories: a bare "**/" requires at least one directory, which
+    # silently skipped api/db.py, api/main.py and every tests/ file.
     backend-typecheck:
       root: backend
-      glob: "backend/{api,tests}/**/*.py"
+      glob: "backend/{api,tests,scripts}/{,**/}*.py"
+      # Alembic generates migrations/ and owns their formatting; linting them
+      # would fight the generator on every new revision.
+      exclude: "backend/migrations/**"
       run: uvx ty@0.0.37 check {staged_files}
     backend-lint:
       root: backend
-      glob: "backend/{api,tests}/**/*.py"
+      glob: "backend/{api,tests,scripts}/{,**/}*.py"
+      # Alembic generates migrations/ and owns their formatting; linting them
+      # would fight the generator on every new revision.
+      exclude: "backend/migrations/**"
       run: uvx ruff@0.15.13 check --fix --select I {staged_files}
       stage_fixed: true
     backend-format:
       root: backend
-      glob: "backend/{api,tests}/**/*.py"
+      glob: "backend/{api,tests,scripts}/{,**/}*.py"
+      # Alembic generates migrations/ and owns their formatting; linting them
+      # would fight the generator on every new revision.
+      exclude: "backend/migrations/**"
       run: uvx ruff@0.15.13 format {staged_files}
       stage_fixed: true
     codespell:

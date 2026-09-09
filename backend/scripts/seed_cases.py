@@ -31,9 +31,7 @@ async def _seed_case(
     source_references: list[str],
 ) -> Case:
     """Insert a published demo case by title, or return the existing case."""
-    existing = (
-        await session.exec(select(Case).where(Case.title == title))
-    ).first()
+    existing = (await session.exec(select(Case).where(Case.title == title))).first()
     if existing is not None:
         return existing
 
