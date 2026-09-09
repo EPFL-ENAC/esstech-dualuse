@@ -84,7 +84,18 @@
                 outlined
                 emit-value
                 map-options
-              />
+              >
+                <template #option="{ itemProps, opt }">
+                  <q-item v-bind="itemProps">
+                    <q-item-section>
+                      <q-item-label>{{ opt.label }}</q-item-label>
+                      <q-item-label caption class="encounter-page__option-caption">
+                        {{ opt.description }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
               <q-select
                 v-model="gate"
                 class="col-12 col-sm-6"
@@ -141,9 +152,10 @@ import { useRouter } from 'vue-router';
 
 import RevealPanel from 'components/RevealPanel.vue';
 import { ApiError } from 'boot/api';
-import { GATES, PATTERNS, createCommitment, revealEncounter } from 'src/api/student';
+import { createCommitment, revealEncounter } from 'src/api/student';
 import type { FramingAnswers, Gate, Pattern } from 'src/api/student';
 import { FRAMING_QUESTIONS } from 'src/content/framing';
+import { GATE_OPTIONS, PATTERN_OPTIONS } from 'src/content/patterns';
 import { useStudentStore } from 'stores/student';
 
 defineOptions({
@@ -158,8 +170,21 @@ const encounter = computed(() => store.encounter);
 const reveal = computed(() => store.reveal);
 const isCommitted = computed(() => store.commitment !== null);
 
-const patternOptions = PATTERNS.map((value) => ({ label: value, value }));
-const gateOptions = GATES.map((value) => ({ label: value, value }));
+// Display text only. `value` stays the backend enum ID, so commitment payloads
+// are unchanged by the relabelling. No cast is needed: content/patterns.ts keys
+// its records by Pattern/Gate, so a drifted id is a compile error there.
+const patternOptions = PATTERN_OPTIONS.map((option) => ({
+  label: option.label,
+  value: option.id,
+  description: option.description,
+}));
+
+// Shared with the framing gate question above on purpose: same enum, one set of
+// labels. The two answers stay independent — only their wording is common.
+const gateOptions = GATE_OPTIONS.map((option) => ({
+  label: option.label,
+  value: option.id,
+}));
 
 // Kept separate from `gate` below on purpose: the framing answer records the
 // learner's own reading of the decision point, while the commitment gate is
@@ -259,5 +284,9 @@ async function startOver() {
 
 .encounter-page__narrative {
   white-space: pre-wrap;
+}
+
+.encounter-page__option-caption {
+  white-space: normal;
 }
 </style>
