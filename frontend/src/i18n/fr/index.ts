@@ -10,8 +10,8 @@ export default {
 
   studentOpen: 'Ouvrir le parcours étudiant',
 
-  studentTitle: 'Étudiant — individuel',
-  studentIntro: 'Travaillez jusqu’à trois cas, une décision à la fois.',
+  studentTitle: 'Parcours étudiant — individuel',
+  studentIntro: 'Traitez jusqu’à trois cas, une décision à la fois.',
   studentStart: 'Démarrer une session',
   studentStarting: 'Démarrage de la session...',
   studentSessionActive: 'Session en cours',
@@ -19,12 +19,12 @@ export default {
 
   casesTitle: 'Choisissez un cas',
   casesLoading: 'Chargement des cas...',
-  casesEmpty: 'Aucun cas restant. Vous avez traité tout ce qui était disponible.',
+  casesEmpty: 'Aucun cas restant. Vous avez traité tous les cas disponibles.',
   caseSelect: 'Travailler sur ce cas',
   caseSelecting: 'Ouverture du cas...',
-  confirmSelectTitle: 'Commencer ce cas ?',
+  confirmSelectTitle: 'Commencer ce cas ?',
   confirmSelectBody:
-    'Ouvrir « {title} » utilise l’un des trois cas de cette session. C’est irréversible.',
+    'En ouvrant « {title} », vous utilisez l’un des trois cas de cette session. Cette action est irréversible.',
   confirmSelect: 'Commencer ce cas',
   confirmCancel: 'Annuler',
 
@@ -33,31 +33,33 @@ export default {
   encounterStep: 'Cas {current} sur {total}',
 
   framingTitle: 'Avant de vous engager',
-  framingHint: 'Répondez avec vos propres mots. Vos réponses sont enregistrées avec votre choix.',
+  framingHint:
+    'Répondez avec vos propres mots. Vos réponses sont enregistrées avec votre engagement.',
 
   commitmentTitle: 'Votre lecture',
-  commitmentPattern: 'Motif',
-  commitmentGate: 'Point de décision',
-  commitmentHint: 'Choisissez le motif et le point de décision déterminants selon vous.',
-  commitmentSubmit: 'Valider',
-  commitmentSubmitting: 'Enregistrement de votre choix...',
-  commitmentSaved: 'Choix enregistré. Vous pouvez révéler le cas.',
-  commitmentIncomplete: 'Choisissez d’abord un motif et un point de décision.',
+  commitmentPattern: 'Pattern',
+  commitmentGate: 'Gate',
+  commitmentHint:
+    'Choisissez le pattern et le gate qui, selon vous, sont déterminants dans ce cas.',
+  commitmentSubmit: 'S’engager',
+  commitmentSubmitting: 'Enregistrement de votre engagement...',
+  commitmentSaved: 'Engagement enregistré. Vous pouvez révéler le cas.',
+  commitmentIncomplete: 'Choisissez d’abord un pattern et un gate.',
 
   revealAction: 'Révéler le cas',
-  revealLoading: 'Révélation...',
+  revealLoading: 'Révélation du cas...',
   revealTitle: 'Ce qui s’est passé',
   revealYourReading: 'Votre lecture',
-  revealMainPath: 'Le cas',
+  revealMainPath: 'Chemin principal',
   revealSources: 'Sources',
   revealAt: 'Révélé le {at}',
   revealAgain: 'Afficher à nouveau',
   revealNextCase: 'Cas suivant',
 
-  matchMatch: 'Correspondance',
+  matchMatch: 'Correspondance complète',
   matchPartial: 'Correspondance partielle',
   matchMismatch: 'Aucune correspondance',
-  matchMatchHint: 'Vous avez identifié le motif et le point de décision.',
+  matchMatchHint: 'Vous avez identifié à la fois le pattern et le gate.',
   matchPartialHint: 'Vous avez identifié l’un des deux.',
   matchMismatchHint: 'Aucun des deux ne correspond au chemin principal du cas.',
 

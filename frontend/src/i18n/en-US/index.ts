@@ -48,7 +48,7 @@ export default {
   revealLoading: 'Revealing...',
   revealTitle: 'What happened',
   revealYourReading: 'Your reading',
-  revealMainPath: 'The case',
+  revealMainPath: 'Main path',
   revealSources: 'Sources',
   revealAt: 'Revealed at {at}',
   revealAgain: 'Show again',
