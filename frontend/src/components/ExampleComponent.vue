@@ -3,9 +3,7 @@
     <p v-if="message" class="text-body1">
       {{ message }}
     </p>
-    <p v-else class="text-grey-6">
-      Press the button above to fetch a message from the backend.
-    </p>
+    <p v-else class="text-grey-6">Press the button above to fetch a message from the backend.</p>
 
     <q-btn
       color="secondary"
