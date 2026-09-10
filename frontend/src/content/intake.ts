@@ -96,12 +96,14 @@ export const MICRO_PRIMER = {
 export const COMPREHENSION_CHECK: IntakeItem = {
   id: 'c1',
   prompt:
-    'Placeholder: a lab releases a protein-design tool openly, and it is later ' +
-    'used to design a toxin. At which decision point could the risk most ' +
+    'Placeholder: a team releases an image-generation model as openly ' +
+    'downloadable weights instead of providing controlled access through ' +
+    'an API, and the model is later used to create non-consensual ' +
+    'synthetic images. At which decision point could the risk most ' +
     'plausibly have been addressed?',
   options: [
-    { value: 'c1a', label: 'After the misuse was reported.' },
-    { value: 'c1b', label: 'When deciding how to release the tool.' },
+    { value: 'c1a', label: 'After the harmful images were reported.' },
+    { value: 'c1b', label: 'When deciding how to release the model.' },
     { value: 'c1c', label: 'It could not have been addressed at any point.' },
   ],
 };
