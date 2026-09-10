@@ -8,7 +8,21 @@ export default {
   welcomeHint: 'This is the dummy home page. Replace it with your real content.',
   fetchMessage: 'Fetch backend message',
 
-  studentOpen: 'Open the student path',
+  sessionStart: 'Start session',
+  studentOpenDev: 'Skip to student flow (dev)',
+
+  intakeTitle: 'Before you begin',
+  intakeIntro: 'A few quick questions to set up your session.',
+  intakeDiagnosticTitle: 'Three quick questions',
+  intakeComprehensionTitle: 'One last check',
+  intakeOneAttempt: 'One attempt only — you will not be asked again.',
+  intakeSubmit: 'Continue',
+  intakeSubmitting: 'Saving...',
+  intakePrimerContinue: 'Got it, continue',
+  intakeContinue: 'Continue',
+  intakeDoneTitle: 'You are set up',
+  intakeDoneBody: 'Your session is ready. Next, choose a case to work through.',
+  intakeGoToCases: 'Choose a case',
 
   studentTitle: 'Student — individual',
   studentIntro: 'Work through up to three cases, one decision at a time.',

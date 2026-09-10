@@ -8,7 +8,21 @@ export default {
   welcomeHint: 'Ceci est la page d’accueil factice. Remplacez-la par votre contenu réel.',
   fetchMessage: 'Récupérer le message du backend',
 
-  studentOpen: 'Ouvrir le parcours étudiant',
+  sessionStart: 'Démarrer une session',
+  studentOpenDev: 'Accès direct au parcours étudiant (dev)',
+
+  intakeTitle: 'Avant de commencer',
+  intakeIntro: 'Quelques questions rapides pour préparer votre session.',
+  intakeDiagnosticTitle: 'Trois questions rapides',
+  intakeComprehensionTitle: 'Une dernière vérification',
+  intakeOneAttempt: 'Une seule tentative — la question ne sera pas reposée.',
+  intakeSubmit: 'Continuer',
+  intakeSubmitting: 'Enregistrement...',
+  intakePrimerContinue: 'Compris, continuer',
+  intakeContinue: 'Continuer',
+  intakeDoneTitle: 'Vous êtes prêt',
+  intakeDoneBody: 'Votre session est prête. Choisissez maintenant un cas à traiter.',
+  intakeGoToCases: 'Choisir un cas',
 
   studentTitle: 'Parcours étudiant — individuel',
   studentIntro: 'Traitez jusqu’à trois cas, une décision à la fois.',

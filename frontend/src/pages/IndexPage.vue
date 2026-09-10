@@ -11,8 +11,13 @@
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn color="primary" flat :label="t('studentOpen')" to="/student" />
-        <q-btn color="primary" :label="t('fetchMessage')" unelevated @click="fetchMessage" />
+        <!-- Bypasses M0 intake and lands directly in the Student/Individual
+             flow. Kept for testing, and labelled so it is not mistaken for the
+             ordinary entry point: nothing server-side refuses an encounter
+             when intake was skipped. -->
+        <q-btn color="grey-7" flat :label="t('studentOpenDev')" to="/student" />
+        <q-btn color="primary" :label="t('fetchMessage')" flat @click="fetchMessage" />
+        <q-btn color="primary" :label="t('sessionStart')" unelevated to="/intake" />
       </q-card-actions>
     </q-card>
   </q-page>

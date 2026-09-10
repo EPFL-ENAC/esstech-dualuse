@@ -15,6 +15,7 @@ from api.services.errors import ServiceError
 from api.views.cases import router as cases_router
 from api.views.dummy import router as dummy_router
 from api.views.encounters import router as encounters_router
+from api.views.intake import router as intake_router
 from api.views.sessions import router as sessions_router
 
 basicConfig(level=INFO)
@@ -98,4 +99,9 @@ app.include_router(
 app.include_router(
     encounters_router,
     tags=["Encounters"],
+)
+
+app.include_router(
+    intake_router,
+    tags=["Intake"],
 )

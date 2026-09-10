@@ -90,3 +90,18 @@ class Gate(str, Enum):
     G4 = "G4"
     G5 = "G5"
     G6 = "G6"
+
+
+class ScaffoldingDepth(str, Enum):
+    """How much support a learner is judged to need after M0 intake.
+
+    PLACEHOLDER. These three levels and the rule that picks between them
+    (api/content/intake_key.py) stand in for a real pedagogical model that has
+    not been designed yet. Nothing reads this value: it is persisted for a
+    later milestone, deliberately not wired to hints, difficulty, or anything
+    else. Expect the member set itself to change once the real model exists.
+    """
+
+    HIGH = "high"
+    STANDARD = "standard"
+    LOW = "low"
