@@ -50,7 +50,9 @@ pre-commit:
       run: uvx ruff@0.15.13 format {staged_files}
       stage_fixed: true
     codespell:
-      run: uvx codespell@2.4.2 --skip="frontend/package-lock.json" {staged_files}
+      # portait: French ("was carrying/holding", imperfect of porter), not a
+      # typo of "portrait" -- codespell has no French dictionary.
+      run: uvx codespell@2.4.2 --skip="frontend/package-lock.json" --ignore-words-list="portait" {staged_files}
 
 commit-msg:
   commands:
