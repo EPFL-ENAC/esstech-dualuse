@@ -205,6 +205,7 @@ async function ensureSession(): Promise<string | null> {
 }
 
 async function sendDiagnostic() {
+  const answers = orderedAnswers();
   const sessionId = await ensureSession();
   if (sessionId === null) {
     return;
@@ -213,7 +214,7 @@ async function sendDiagnostic() {
   submitting.value = true;
   errorMessage.value = '';
   try {
-    store.setDiagnostic(await submitDiagnostic(sessionId, orderedAnswers()));
+    store.setDiagnostic(await submitDiagnostic(sessionId, answers));
   } catch (error) {
     errorMessage.value = describe(error);
   } finally {
