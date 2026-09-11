@@ -23,7 +23,7 @@ from api.content.intake_key import (
 )
 from api.models import SessionIntake
 from api.models.enums import ScaffoldingDepth
-from api.services.errors import ConflictError, NotFoundError, ServiceError
+from api.services.errors import ConflictError, NotFoundError, ValidationError
 from api.services.sessions import get_owned_session
 
 
@@ -71,12 +71,6 @@ class IntakeState(BaseModel):
     comprehension_correct: bool | None
     scaffolding_depth: ScaffoldingDepth | None
     completed_at: datetime | None
-
-
-class ValidationError(ServiceError):
-    """The submission does not match the item set it claims to answer."""
-
-    status_code = 422
 
 
 def _utc_now() -> datetime:

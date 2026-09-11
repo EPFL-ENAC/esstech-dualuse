@@ -28,3 +28,9 @@ class ConflictError(ServiceError):
     """The request contradicts the current state, and a retry would too."""
 
     status_code = 409
+
+
+class ValidationError(ServiceError):
+    """The request's content is invalid, independent of who sent it or when."""
+
+    status_code = 422
