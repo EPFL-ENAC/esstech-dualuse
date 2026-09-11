@@ -3,6 +3,8 @@ import { ref } from 'vue';
 
 import type {
   CommitmentCreated,
+  ContrastResponse,
+  CounterCaseResponse,
   EncounterCreated,
   RevealResponse,
   SessionCreated,
@@ -23,6 +25,8 @@ export const useStudentStore = defineStore(
     const encounter = ref<EncounterCreated | null>(null);
     const commitment = ref<CommitmentCreated | null>(null);
     const reveal = ref<RevealResponse | null>(null);
+    const counterCase = ref<CounterCaseResponse | null>(null);
+    const contrast = ref<ContrastResponse | null>(null);
 
     function setSession(value: SessionCreated): void {
       session.value = value;
@@ -33,6 +37,8 @@ export const useStudentStore = defineStore(
       encounter.value = value;
       commitment.value = null;
       reveal.value = null;
+      counterCase.value = null;
+      contrast.value = null;
     }
 
     function setCommitment(value: CommitmentCreated): void {
@@ -43,10 +49,20 @@ export const useStudentStore = defineStore(
       reveal.value = value;
     }
 
+    function setCounterCase(value: CounterCaseResponse): void {
+      counterCase.value = value;
+    }
+
+    function setContrast(value: ContrastResponse): void {
+      contrast.value = value;
+    }
+
     function clearEncounter(): void {
       encounter.value = null;
       commitment.value = null;
       reveal.value = null;
+      counterCase.value = null;
+      contrast.value = null;
     }
 
     function reset(): void {
@@ -59,10 +75,14 @@ export const useStudentStore = defineStore(
       encounter,
       commitment,
       reveal,
+      counterCase,
+      contrast,
       setSession,
       setEncounter,
       setCommitment,
       setReveal,
+      setCounterCase,
+      setContrast,
       clearEncounter,
       reset,
     };

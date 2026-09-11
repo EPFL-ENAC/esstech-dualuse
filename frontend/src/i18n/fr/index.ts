@@ -68,7 +68,29 @@ export default {
   revealSources: 'Sources',
   revealAt: 'Révélé le {at}',
   revealAgain: 'Afficher à nouveau',
-  revealNextCase: 'Cas suivant',
+
+  contrastContinue: 'Continuer',
+  contrastTwinTitle: 'Un cas-jumeau existe',
+  contrastWhoQuestion:
+    'Qui portait la responsabilité dans ce cas-jumeau, et en quoi cela diffère-t-il du cas que vous venez de lire ?',
+  contrastResponseLabel: 'Votre réflexion',
+  contrastSubmit: 'Envoyer',
+  contrastSubmitting: 'Enregistrement...',
+  contrastSaved: 'Réflexion enregistrée.',
+  contrastOpenAreaMessage:
+    "Ce cas de figure n'est pas encore couvert par un cas-jumeau dans le corpus actuel. L'outil n'invente pas de solution là où la base de preuves n'en a pas.",
+
+  anotherCaseProgress: 'Vous avez travaillé {current} cas sur {total}.',
+  anotherCaseYes: 'Oui, un autre cas',
+  anotherCaseNo: 'Non',
+  anotherCaseFinish: 'Terminer',
+
+  completePlaceholderNotice:
+    "TEMPORAIRE : le débriefing de fin de session (M6) n'existe pas encore.",
+  completeTitle: 'Vous avez terminé pour le moment',
+  completeBody:
+    'Vous avez terminé vos réflexions de cas pour cette session. Un débriefing apparaîtra ici dans une prochaine mise à jour.',
+  completeGoHome: "Retour à l'accueil",
 
   matchMatch: 'Correspondance complète',
   matchPartial: 'Correspondance partielle',

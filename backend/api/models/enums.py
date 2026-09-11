@@ -105,3 +105,14 @@ class ScaffoldingDepth(str, Enum):
     HIGH = "high"
     STANDARD = "standard"
     LOW = "low"
+
+
+class ContrastType(str, Enum):
+    """Which post-reveal reflection branch an encounter received.
+
+    Derived server-side from whether the encounter's case has a linked
+    counter-case, never supplied by the client.
+    """
+
+    TWIN_COUNTER_CASE = "twin_counter_case"
+    OPEN_AREA = "open_area"

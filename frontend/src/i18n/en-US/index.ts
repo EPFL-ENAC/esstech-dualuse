@@ -66,7 +66,28 @@ export default {
   revealSources: 'Sources',
   revealAt: 'Revealed at {at}',
   revealAgain: 'Show again',
-  revealNextCase: 'Next case',
+
+  contrastContinue: 'Continue',
+  contrastTwinTitle: 'A counter-case exists',
+  contrastWhoQuestion:
+    'What was different about who held responsibility in this counter-case, compared to the case you just read?',
+  contrastResponseLabel: 'Your reflection',
+  contrastSubmit: 'Submit',
+  contrastSubmitting: 'Saving...',
+  contrastSaved: 'Reflection saved.',
+  contrastOpenAreaMessage:
+    'This area is not yet covered by a counter-case in the current corpus. The tool does not infer a solution where the evidence base has none.',
+
+  anotherCaseProgress: 'You have completed {current} of {total} case reflections.',
+  anotherCaseYes: 'Yes, another case',
+  anotherCaseNo: 'No',
+  anotherCaseFinish: 'Finish',
+
+  completePlaceholderNotice: 'TEMPORARY: the post-session debrief (M6) does not exist yet.',
+  completeTitle: 'You are done for now',
+  completeBody:
+    'You have finished your case reflections for this session. A debrief will appear here in a future update.',
+  completeGoHome: 'Return home',
 
   matchMatch: 'Match',
   matchPartial: 'Partial match',

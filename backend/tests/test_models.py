@@ -5,10 +5,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 
-from api.models import Case, CaseEncounter, Commitment, Session
+from api.models import Case, CaseEncounter, Commitment, ContrastEntry, Session
 from api.models.enums import (
     CaseStatus,
     CaseType,
+    ContrastType,
     Gate,
     Pattern,
     SessionMode,
@@ -161,6 +162,35 @@ async def test_commitment_sequence_no_unique_per_encounter(db_session):
             pattern=Pattern.C,
             gate=Gate.G3,
             framing_answers={},
+        )
+    )
+    with pytest.raises(IntegrityError):
+        await db_session.commit()
+
+
+async def test_contrast_entry_unique_per_encounter(db_session):
+    case = _make_case()
+    session = _make_session()
+    db_session.add(case)
+    db_session.add(session)
+    await db_session.flush()
+
+    encounter = CaseEncounter(session_id=session.id, case_id=case.id, sequence_no=1)
+    db_session.add(encounter)
+    await db_session.flush()
+
+    db_session.add(
+        ContrastEntry(
+            case_encounter_id=encounter.id,
+            contrast_type=ContrastType.OPEN_AREA,
+        )
+    )
+    await db_session.commit()
+
+    db_session.add(
+        ContrastEntry(
+            case_encounter_id=encounter.id,
+            contrast_type=ContrastType.OPEN_AREA,
         )
     )
     with pytest.raises(IntegrityError):

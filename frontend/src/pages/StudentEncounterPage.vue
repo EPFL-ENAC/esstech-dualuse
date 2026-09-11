@@ -137,9 +137,37 @@
 
         <RevealPanel v-if="reveal" :reveal="reveal" />
 
-        <div v-if="reveal" class="row justify-end">
-          <q-btn color="primary" flat :label="t('revealNextCase')" @click="goToCases" />
+        <!-- Never shows on the normal path: requestCounterCase() already ran
+             automatically inside requestReveal(). This is a manual retry for
+             the two abnormal ways to land here -- that call failing, or a
+             reload landing between reveal succeeding and the lookup
+             resolving, since this page has no onMounted to resume it. -->
+        <div v-if="reveal && !counterCase && !loadingCounterCase" class="row justify-end">
+          <q-btn color="primary" flat :label="t('contrastContinue')" @click="requestCounterCase" />
         </div>
+
+        <ContrastPanel
+          v-if="counterCase"
+          :counter-case="counterCase"
+          :contrast="contrast"
+          :submitting="submittingContrast"
+          @submit="submitContrastReflection"
+        />
+
+        <q-card v-if="contrast" flat bordered>
+          <q-card-section>
+            <div class="text-body1">
+              {{ t('anotherCaseProgress', { current: encounter.sequence_no, total: 3 }) }}
+            </div>
+          </q-card-section>
+          <q-card-actions align="right">
+            <template v-if="encounter.sequence_no < 3">
+              <q-btn flat :label="t('anotherCaseNo')" @click="goToTemporaryLanding" />
+              <q-btn color="primary" unelevated :label="t('anotherCaseYes')" @click="goToCases" />
+            </template>
+            <q-btn v-else flat :label="t('anotherCaseFinish')" @click="goToTemporaryLanding" />
+          </q-card-actions>
+        </q-card>
       </template>
     </div>
   </q-page>
@@ -150,9 +178,10 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import ContrastPanel from 'components/ContrastPanel.vue';
 import RevealPanel from 'components/RevealPanel.vue';
 import { ApiError } from 'boot/api';
-import { createCommitment, revealEncounter } from 'src/api/student';
+import { createCommitment, getCounterCase, revealEncounter, submitContrast } from 'src/api/student';
 import type { FramingAnswers, Gate, Pattern } from 'src/api/student';
 import { FRAMING_QUESTIONS } from 'src/content/framing';
 import { GATE_OPTIONS, PATTERN_OPTIONS } from 'src/content/patterns';
@@ -168,6 +197,8 @@ const store = useStudentStore();
 
 const encounter = computed(() => store.encounter);
 const reveal = computed(() => store.reveal);
+const counterCase = computed(() => store.counterCase);
+const contrast = computed(() => store.contrast);
 const isCommitted = computed(() => store.commitment !== null);
 
 // Display text only. `value` stays the backend enum ID, so commitment payloads
@@ -198,6 +229,8 @@ const gate = ref<Gate | null>(null);
 
 const committing = ref(false);
 const revealing = ref(false);
+const loadingCounterCase = ref(false);
+const submittingContrast = ref(false);
 const errorMessage = ref('');
 const notFound = ref(false);
 
@@ -258,6 +291,7 @@ async function requestReveal() {
     // Always render what the server returns. Reveal is compute-or-fetch, so a
     // repeat call is the stored verdict, not a new one.
     store.setReveal(await revealEncounter(encounter.value.id));
+    await requestCounterCase();
   } catch (error) {
     handle(error);
   } finally {
@@ -265,9 +299,53 @@ async function requestReveal() {
   }
 }
 
+async function requestCounterCase() {
+  if (!encounter.value) {
+    return;
+  }
+
+  loadingCounterCase.value = true;
+  errorMessage.value = '';
+  try {
+    const result = await getCounterCase(encounter.value.id);
+    store.setCounterCase(result);
+    if (!result.has_counter_case) {
+      // No question to ask: submit the open-area acknowledgement directly,
+      // rather than waiting on a button click with nothing to click for.
+      await submitContrastReflection(null);
+    }
+  } catch (error) {
+    handle(error);
+  } finally {
+    loadingCounterCase.value = false;
+  }
+}
+
+async function submitContrastReflection(learnerResponse: string | null) {
+  if (!encounter.value) {
+    return;
+  }
+
+  submittingContrast.value = true;
+  errorMessage.value = '';
+  try {
+    store.setContrast(await submitContrast(encounter.value.id, learnerResponse));
+  } catch (error) {
+    handle(error);
+  } finally {
+    submittingContrast.value = false;
+  }
+}
+
 async function goToCases() {
   store.clearEncounter();
   await router.push('/student');
+}
+
+async function goToTemporaryLanding() {
+  // TEMPORARY: M6 debrief does not exist yet. "No" must not be a silent
+  // dead-end; this redirect is what M6's debrief replaces once it exists.
+  await router.push('/student/complete');
 }
 
 async function startOver() {

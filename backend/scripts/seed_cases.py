@@ -168,6 +168,31 @@ async def seed() -> None:
                 source_references=["internal-demo-fixture-open-release"],
             )
 
+            # A third HARM case, deliberately with no counter-case link: without
+            # it a session can never reach its third encounter (only two other
+            # HARM cases exist), so the "another case?" cap at 3 would have no
+            # case history able to reach it at all, in the app or in e2e tests.
+            await _seed_case(
+                session,
+                title="Demo: Synthetic Media Toolkit",
+                area="generative media",
+                case_type=CaseType.HARM,
+                narrative_until_crossroads=(
+                    "A small team must decide how to distribute a toolkit for "
+                    "generating realistic synthetic voice and video."
+                ),
+                full_narrative=(
+                    "The toolkit ships with no provenance watermarking and no consent "
+                    "verification step, so downstream use is indistinguishable from "
+                    "genuine recordings."
+                ),
+                main_path_pattern=Pattern.C,
+                main_path_gate=Gate.G5,
+                tagged_patterns=[Pattern.C, Pattern.O],
+                tagged_gates=[Gate.G3, Gate.G5],
+                source_references=["internal-demo-fixture-synthetic-media"],
+            )
+
     print("Seeded demo cases.")
 
 

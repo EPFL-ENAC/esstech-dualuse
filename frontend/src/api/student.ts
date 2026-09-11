@@ -94,6 +94,28 @@ export interface RevealResponse {
   case: RevealedCase;
 }
 
+export type ContrastType = 'twin_counter_case' | 'open_area';
+
+/** The counter-case fields shown before the WHO reflection question. */
+export interface CounterCaseInfo {
+  counter_case_id: string;
+  gate_lever: Gate;
+  responsibility_posture_contrast: string;
+}
+
+export interface CounterCaseResponse {
+  has_counter_case: boolean;
+  counter_case: CounterCaseInfo | null;
+}
+
+export interface ContrastResponse {
+  contrast_entry_id: string;
+  contrast_type: ContrastType;
+  counter_case_id: string | null;
+  learner_response: string | null;
+  created_at: string;
+}
+
 function postJson<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, {
     method: 'POST',
@@ -129,4 +151,29 @@ export function createCommitment(
  */
 export function revealEncounter(encounterId: string): Promise<RevealResponse> {
   return apiFetch<RevealResponse>(`/encounters/${encounterId}/reveal`, { method: 'POST' });
+}
+
+/**
+ * Look up the encounter's counter-case, if any.
+ *
+ * Never a 404 for "no counter-case" -- that's a valid corpus state reported
+ * as `has_counter_case: false`, not an error.
+ */
+export function getCounterCase(encounterId: string): Promise<CounterCaseResponse> {
+  return apiFetch<CounterCaseResponse>(`/encounters/${encounterId}/counter-case`);
+}
+
+/**
+ * Submit the post-reveal contrast reflection.
+ *
+ * Safe to call repeatedly, the same way revealEncounter is: the backend
+ * derives contrast_type itself and returns the stored entry afterwards.
+ */
+export function submitContrast(
+  encounterId: string,
+  learnerResponse: string | null,
+): Promise<ContrastResponse> {
+  return postJson<ContrastResponse>(`/encounters/${encounterId}/contrast`, {
+    learner_response: learnerResponse,
+  });
 }
