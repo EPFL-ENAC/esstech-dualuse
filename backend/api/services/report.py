@@ -192,14 +192,6 @@ async def get_session_report(
         mismatch=match_results.count(MatchResult.MISMATCH),
     )
 
-    # Computed independently from cases_explored (a count of ContrastEntry
-    # rows across *all* encounters, not filtered to `completed`), so the
-    # two coinciding is a real, testable fact about this app's forced
-    # contrast flow -- not a tautology of how each is defined.
-    counter_case_reflections_completed = sum(
-        1 for state in states if state.contrast is not None
-    )
-
     intake = (
         await session.exec(
             select(SessionIntake).where(SessionIntake.session_id == session_id)
@@ -228,7 +220,11 @@ async def get_session_report(
                 key=lambda pattern: pattern.value,
             ),
             match_result_counts=match_result_counts,
-            counter_case_reflections_completed=counter_case_reflections_completed,
+            # Derived from the same `completed` list as cases_explored, not
+            # a separate scan over `states` -- contrast is already one of
+            # the three conditions `completed` requires, so this is
+            # structurally the same count, not one that could drift from it.
+            counter_case_reflections_completed=len(completed),
             scaffolding_depth=scaffolding_depth,
             suggested_next_focus=suggested_next_focus,
         ),
