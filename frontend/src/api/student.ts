@@ -6,6 +6,7 @@
  * development cookie, which `apiFetch` forwards.
  */
 import { apiFetch } from 'boot/api';
+import type { ScaffoldingDepth } from 'src/api/intake';
 
 export const PATTERNS = [
   'A',
@@ -116,6 +117,41 @@ export interface ContrastResponse {
   created_at: string;
 }
 
+/** One encounter that reached commitment, feedback, and contrast. */
+export interface CompletedEncounterReport {
+  case_title: string;
+  committed_pattern: Pattern;
+  committed_gate: Gate;
+  match_result: MatchResult;
+  contrast_type: ContrastType;
+  /** Only present when contrast_type is 'twin_counter_case'. */
+  gate_lever?: Gate;
+}
+
+export interface MatchResultCounts {
+  match: number;
+  partial_match: number;
+  mismatch: number;
+}
+
+/** The debrief content, present only once at least one case is complete. */
+export interface SessionReportBody {
+  encounters: CompletedEncounterReport[];
+  cases_explored: number;
+  decision_points_considered: Gate[];
+  patterns_selected: Pattern[];
+  match_result_counts: MatchResultCounts;
+  counter_case_reflections_completed: number;
+  scaffolding_depth?: ScaffoldingDepth;
+  /** Absent, not null, when no encounter in the session has a counter-case. */
+  suggested_next_focus?: Gate;
+}
+
+export interface SessionReport {
+  has_completed_cases: boolean;
+  report?: SessionReportBody;
+}
+
 function postJson<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, {
     method: 'POST',
@@ -176,4 +212,9 @@ export function submitContrast(
   return postJson<ContrastResponse>(`/encounters/${encounterId}/contrast`, {
     learner_response: learnerResponse,
   });
+}
+
+/** Fetch the session's M6/M7 self-reflection debrief and report. */
+export function getSessionReport(sessionId: string): Promise<SessionReport> {
+  return apiFetch<SessionReport>(`/sessions/${sessionId}/report`);
 }

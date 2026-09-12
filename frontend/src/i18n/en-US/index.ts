@@ -83,11 +83,23 @@ export default {
   anotherCaseNo: 'No',
   anotherCaseFinish: 'Finish',
 
-  completePlaceholderNotice: 'TEMPORARY: the post-session debrief (M6) does not exist yet.',
-  completeTitle: 'You are done for now',
-  completeBody:
-    'You have finished your case reflections for this session. A debrief will appear here in a future update.',
+  completeTitle: 'Your session debrief',
+  completeBody: 'A summary of your case reflections in this session.',
   completeGoHome: 'Return home',
+  completeNoCasesBody: 'You have not completed any case reflections in this session yet.',
+  completeCasesExploredLabel: 'Cases explored',
+  completeDecisionPointsLabel: 'Decision gates considered',
+  completePatternsSelectedLabel: 'Patterns selected',
+  completeMatchBreakdownLabel: 'Match breakdown',
+  completeCounterCaseReflectionsLabel: 'Counter-case reflections completed',
+  completeSuggestedFocusLabel: 'Suggested next focus',
+
+  scaffoldingLabel: 'Support level',
+  scaffoldingPlaceholderNote:
+    'Provisional placeholder, not a validated assessment of your understanding.',
+  scaffoldingHigh: 'High support needed',
+  scaffoldingStandard: 'Standard support needed',
+  scaffoldingLow: 'Minimal support needed',
 
   matchMatch: 'Match',
   matchPartial: 'Partial match',
@@ -95,6 +107,13 @@ export default {
   matchMatchHint: 'You identified both the pattern and the gate.',
   matchPartialHint: 'You identified one of the two.',
   matchMismatchHint: 'Neither matched the case main path.',
+
+  reflectionMatch:
+    "You identified {pattern} at {gate}. Your interpretation aligned with the case's main path. Which secondary pattern or gate would you examine next, and why?",
+  reflectionPartialMatch:
+    "You identified {pattern} at {gate}. Your interpretation matched the case's main path on one of the two elements. Which one did you read correctly — the pattern or the gate — and what led you to the other one?",
+  reflectionMismatch:
+    "You identified {pattern} at {gate}. Your interpretation differed from the case's main path on both elements. What assumption led to your choice? Which part of the case evidence would you revisit?",
 
   errorTitle: 'Something went wrong',
   errorRetry: 'Try again',

@@ -85,12 +85,23 @@ export default {
   anotherCaseNo: 'Non',
   anotherCaseFinish: 'Terminer',
 
-  completePlaceholderNotice:
-    "TEMPORAIRE : le débriefing de fin de session (M6) n'existe pas encore.",
-  completeTitle: 'Vous avez terminé pour le moment',
-  completeBody:
-    'Vous avez terminé vos réflexions de cas pour cette session. Un débriefing apparaîtra ici dans une prochaine mise à jour.',
+  completeTitle: 'Votre bilan de session',
+  completeBody: 'Un résumé de vos réflexions de cas pour cette session.',
   completeGoHome: "Retour à l'accueil",
+  completeNoCasesBody: "Vous n'avez pas encore terminé de réflexion de cas dans cette session.",
+  completeCasesExploredLabel: 'Cas explorés',
+  completeDecisionPointsLabel: 'Gates examinés',
+  completePatternsSelectedLabel: 'Patterns sélectionnés',
+  completeMatchBreakdownLabel: 'Répartition des correspondances',
+  completeCounterCaseReflectionsLabel: 'Réflexions sur les cas-jumeaux complétées',
+  completeSuggestedFocusLabel: 'Prochain point à explorer',
+
+  scaffoldingLabel: "Niveau d'accompagnement",
+  scaffoldingPlaceholderNote:
+    'Indication provisoire et non validée : elle ne constitue pas une évaluation de votre compréhension.',
+  scaffoldingHigh: 'Accompagnement renforcé requis',
+  scaffoldingStandard: 'Accompagnement standard requis',
+  scaffoldingLow: 'Accompagnement léger requis',
 
   matchMatch: 'Correspondance complète',
   matchPartial: 'Correspondance partielle',
@@ -98,6 +109,13 @@ export default {
   matchMatchHint: 'Vous avez identifié à la fois le pattern et le gate.',
   matchPartialHint: 'Vous avez identifié l’un des deux.',
   matchMismatchHint: 'Aucun des deux ne correspond au chemin principal du cas.',
+
+  reflectionMatch:
+    'Vous avez identifié {pattern} à {gate}. Votre lecture correspond au chemin principal du cas. Quel autre pattern ou gate examineriez-vous ensuite, et pourquoi ?',
+  reflectionPartialMatch:
+    "Vous avez identifié {pattern} à {gate}. Votre lecture correspond au chemin principal du cas pour l'un des deux éléments seulement. Lequel avez-vous correctement identifié — le pattern ou le gate — et qu'est-ce qui vous a induit en erreur sur l'autre ?",
+  reflectionMismatch:
+    'Vous avez identifié {pattern} à {gate}. Votre lecture diffère du chemin principal du cas sur les deux éléments. Quelle hypothèse a guidé votre choix ? Quelle partie des éléments du cas reverriez-vous ?',
 
   errorTitle: 'Une erreur est survenue',
   errorRetry: 'Réessayer',

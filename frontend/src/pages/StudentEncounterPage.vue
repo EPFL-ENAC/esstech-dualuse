@@ -162,10 +162,10 @@
           </q-card-section>
           <q-card-actions align="right">
             <template v-if="encounter.sequence_no < 3">
-              <q-btn flat :label="t('anotherCaseNo')" @click="goToTemporaryLanding" />
+              <q-btn flat :label="t('anotherCaseNo')" @click="goToDebrief" />
               <q-btn color="primary" unelevated :label="t('anotherCaseYes')" @click="goToCases" />
             </template>
-            <q-btn v-else flat :label="t('anotherCaseFinish')" @click="goToTemporaryLanding" />
+            <q-btn v-else flat :label="t('anotherCaseFinish')" @click="goToDebrief" />
           </q-card-actions>
         </q-card>
       </template>
@@ -342,9 +342,7 @@ async function goToCases() {
   await router.push('/student');
 }
 
-async function goToTemporaryLanding() {
-  // TEMPORARY: M6 debrief does not exist yet. "No" must not be a silent
-  // dead-end; this redirect is what M6's debrief replaces once it exists.
+async function goToDebrief() {
   await router.push('/student/complete');
 }
 

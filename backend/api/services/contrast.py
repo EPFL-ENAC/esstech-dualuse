@@ -43,7 +43,7 @@ class ContrastResponse(BaseModel):
     created_at: datetime
 
 
-async def _find_counter_case_link(
+async def find_counter_case_link(
     session: AsyncSession, *, case_id: UUID
 ) -> CounterCaseLink | None:
     return (
@@ -86,7 +86,7 @@ async def look_up_counter_case(
         session, encounter_id=encounter_id, learner_id=learner_id
     )
 
-    link = await _find_counter_case_link(session, case_id=encounter.case_id)
+    link = await find_counter_case_link(session, case_id=encounter.case_id)
     if link is None:
         return CounterCaseResponse(has_counter_case=False, counter_case=None)
 
@@ -125,7 +125,7 @@ async def submit_contrast(
     if existing is not None:
         return _respond(existing)
 
-    link = await _find_counter_case_link(session, case_id=encounter.case_id)
+    link = await find_counter_case_link(session, case_id=encounter.case_id)
     if link is not None:
         if not (learner_response and learner_response.strip()):
             raise ValidationError("A reflection response is required")

@@ -119,7 +119,7 @@ test('a case with no counter-case submits the open-area acknowledgement automati
   await expect(page.getByText('You have completed 1 of 3 case reflections.')).toBeVisible();
 });
 
-test('the third encounter offers only Finish, landing on the temporary completion page', async ({
+test('the third encounter offers only Finish, landing on the session debrief', async ({
   page,
 }) => {
   await startSessionViaDevBypass(page);
@@ -145,7 +145,7 @@ test('the third encounter offers only Finish, landing on the temporary completio
   await page.getByRole('button', { name: 'Finish' }).click();
 
   await expect(page).toHaveURL(/\/student\/complete$/);
-  await expect(
-    page.getByText('TEMPORARY: the post-session debrief (M6) does not exist yet.'),
-  ).toBeVisible();
+  await expect(page.getByText('Your session debrief')).toBeVisible();
+  await expect(page.getByText('Cases explored')).toBeVisible();
+  await expect(page.getByText(/TEMPORARY/)).toHaveCount(0);
 });
