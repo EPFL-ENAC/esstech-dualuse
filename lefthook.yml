@@ -51,8 +51,9 @@ pre-commit:
       stage_fixed: true
     codespell:
       # portait: French ("was carrying/holding", imperfect of porter), not a
-      # typo of "portrait" -- codespell has no French dictionary.
-      run: uvx codespell@2.4.2 --skip="frontend/package-lock.json" --ignore-words-list="portait" {staged_files}
+      # typo of "portrait". constitue: French ("constitutes"), not a typo of
+      # "constitute" -- codespell has no French dictionary.
+      run: uvx codespell@2.4.2 --skip="frontend/package-lock.json" --ignore-words-list="portait,constitue" {staged_files}
 
 commit-msg:
   commands:
