@@ -29,7 +29,7 @@ from api.models.enums import (
     Pattern,
     SessionRoute,
 )
-from api.services.errors import ConflictError, ValidationError
+from api.services.errors import ConflictError, NotFoundError, ValidationError
 
 # Below this many Function-matched cases, widen by Domain. Not configurable:
 # a fixed corpus-size floor for a comparison to be meaningful at all.
@@ -141,6 +141,27 @@ class TagResult(BaseModel):
     attempts_remaining: int
 
 
+class TechnologyIntakeState(BaseModel):
+    """The full stored technology intake, for recovering an interrupted flow.
+
+    Mirrors Student's IntakeState (api/services/intake.py): everything a
+    reloaded page needs to resume at the right step in one call, rather
+    than reconstructing it from whichever individual POST responses
+    happened to arrive.
+    """
+
+    session_id: UUID
+    raw_description: str
+    domain: Domain | None
+    functions: list[Function]
+    forms: list[Form]
+    mapping_status: MappingStatus
+    attempts_remaining: int
+    gate: Gate | None
+    posture_response: str | None
+    created_at: datetime
+
+
 class RevealComparison(BaseModel):
     """A session's prediction compared against its comparison set's tagged
     pattern distribution.
@@ -244,6 +265,19 @@ async def create_technology_intake(
 MAX_TAG_ATTEMPTS = 2
 
 
+def _attempts_remaining(intake: TechnologyIntake) -> int:
+    """How many /tag attempts this intake has left.
+
+    Shared by submit_tag (computed right after writing a new attempt) and
+    get_technology_intake (computed from whatever is already stored), so
+    the two never drift into disagreeing about the same rule.
+    """
+
+    if intake.mapping_status == MappingStatus.MAPPED:
+        return 0
+    return max(0, MAX_TAG_ATTEMPTS - intake.clarification_count)
+
+
 async def submit_tag(
     session: AsyncSession,
     *,
@@ -290,18 +324,48 @@ async def submit_tag(
     session.add(intake)
     await session.commit()
 
-    attempts_remaining = (
-        0
-        if intake.mapping_status == MappingStatus.MAPPED
-        else max(0, MAX_TAG_ATTEMPTS - intake.clarification_count)
-    )
-
     return TagResult(
         domain=intake.domain,
         functions=intake.functions or [],
         forms=intake.forms or [],
         mapping_status=intake.mapping_status,
-        attempts_remaining=attempts_remaining,
+        attempts_remaining=_attempts_remaining(intake),
+    )
+
+
+async def get_technology_intake(
+    session: AsyncSession, *, session_id: UUID, route: SessionRoute
+) -> TechnologyIntakeState:
+    """Return the stored technology intake, so a reloaded page can resume
+    mid-flow.
+
+    404s if no intake exists yet for this session -- the ordinary "not
+    started" case, exactly mirroring Student's GET /sessions/{id}/intake
+    (api/services/intake.py::get_intake), which 404s the same way before
+    the first diagnostic submission.
+    """
+
+    require_researcher_route(route)
+
+    intake = (
+        await session.exec(
+            select(TechnologyIntake).where(TechnologyIntake.session_id == session_id)
+        )
+    ).first()
+    if intake is None:
+        raise NotFoundError("Technology intake not found")
+
+    return TechnologyIntakeState(
+        session_id=intake.session_id,
+        raw_description=intake.raw_description,
+        domain=intake.domain,
+        functions=intake.functions or [],
+        forms=intake.forms or [],
+        mapping_status=intake.mapping_status,
+        attempts_remaining=_attempts_remaining(intake),
+        gate=intake.gate,
+        posture_response=intake.posture_response,
+        created_at=intake.created_at,
     )
 
 

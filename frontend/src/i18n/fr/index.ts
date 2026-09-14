@@ -21,9 +21,52 @@ export default {
   routeChoiceStarting: 'Démarrage...',
 
   researcherIntakeTitle: 'Prise en compte de la technologie',
-  researcherIntakePlaceholderNotice:
-    'Espace réservé temporaire — cet écran n’a pas encore été développé. Il confirme seulement que votre session en parcours chercheur a bien été créée.',
-  researcherIntakeSessionIdLabel: 'Identifiant de session',
+
+  researcherDescriptionIntro:
+    'Décrivez, avec vos propres mots, la technologie sur laquelle vous travaillez.',
+  researcherDescriptionHint:
+    'Quelques phrases sur ce qu’elle fait et comment elle fonctionne suffisent pour commencer.',
+  researcherDescriptionLabel: 'Description',
+  researcherDescriptionSubmit: 'Continuer',
+  researcherDescriptionSubmitting: 'Enregistrement...',
+
+  researcherTagTitle: 'Cartographiez votre technologie',
+  researcherTagIntro:
+    'Le domaine, la fonction et la forme situent ensemble votre technologie dans le corpus de cas.',
+  researcherTagDomainLabel: 'Domaine',
+  researcherTagFunctionsLabel: 'Fonction(s)',
+  researcherTagFormsLabel: 'Forme(s)',
+  researcherTagSubmit: 'Envoyer',
+  researcherTagSubmitting: 'Enregistrement...',
+  researcherTagPartialNotice:
+    'Le domaine, la fonction et la forme ne sont pas encore tous renseignés. Complétez ce qui manque et envoyez à nouveau.',
+  researcherTagAttemptRemaining: 'Une tentative restante.',
+  researcherTagRetry: 'Réessayer',
+  researcherTagMappedTitle: 'Technologie cartographiée',
+  researcherTagMappedBody: 'Le domaine, la fonction et la forme sont tous renseignés.',
+  researcherTagContinue: 'Continuer',
+  researcherTagExhaustedTitle: 'La cartographie n’a pas pu être complétée',
+  researcherTagExhaustedBody:
+    'Le domaine, la fonction et la forme n’ont pas pu être confirmés dans les tentatives disponibles. L’outil n’invente pas de correspondance là où la description n’en donne pas.',
+
+  researcherGateTitle: 'Gate et responsabilité',
+  researcherGateIntro:
+    'Une dernière réflexion avant de comparer votre prédiction à des cas similaires.',
+  researcherGateQuestion:
+    'Sur quel gate repose principalement le risque de double usage de cette technologie ?',
+  researcherGatePostureHint:
+    'Au-delà de l’usage que vous envisagez, qui d’autre pourrait utiliser cette technologie ?',
+  researcherGateSubmit: 'Continuer',
+  researcherGateSubmitting: 'Enregistrement...',
+  researcherGateDoneTitle: 'Enregistré',
+  researcherGateDoneBody: 'Votre gate et votre réflexion sont enregistrés.',
+
+  researcherComparisonSetTitle: 'Ensemble de comparaison',
+  researcherComparisonSetPlaceholderNotice:
+    'Espace réservé temporaire — cet écran n’a pas encore été développé. Il confirme seulement que votre gate et votre réflexion ont bien été enregistrés.',
+  researcherComparisonSetGateLabel: 'Gate',
+
+  researcherSessionMissing: 'Aucune session chercheur active.',
 
   intakeTitle: 'Avant de commencer',
   intakeIntro: 'Quelques questions rapides pour préparer votre session.',

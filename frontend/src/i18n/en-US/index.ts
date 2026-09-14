@@ -21,9 +21,48 @@ export default {
   routeChoiceStarting: 'Starting...',
 
   researcherIntakeTitle: 'Technology intake',
-  researcherIntakePlaceholderNotice:
-    'Temporary placeholder — this screen has not been built yet. It only confirms that your Researcher-route session was created correctly.',
-  researcherIntakeSessionIdLabel: 'Session ID',
+
+  researcherDescriptionIntro: 'Describe the technology you are working on, in your own words.',
+  researcherDescriptionHint: 'A few sentences on what it does and how it works is enough to start.',
+  researcherDescriptionLabel: 'Description',
+  researcherDescriptionSubmit: 'Continue',
+  researcherDescriptionSubmitting: 'Saving...',
+
+  researcherTagTitle: 'Map your technology',
+  researcherTagIntro:
+    'Domain, Function, and Form together place your technology in the case corpus.',
+  researcherTagDomainLabel: 'Domain',
+  researcherTagFunctionsLabel: 'Function(s)',
+  researcherTagFormsLabel: 'Form(s)',
+  researcherTagSubmit: 'Submit',
+  researcherTagSubmitting: 'Saving...',
+  researcherTagPartialNotice:
+    'Domain, Function, and Form are not all set yet. Fill in what is missing and submit again.',
+  researcherTagAttemptRemaining: 'One attempt remaining.',
+  researcherTagRetry: 'Try again',
+  researcherTagMappedTitle: 'Technology mapped',
+  researcherTagMappedBody: 'Domain, Function, and Form are all set.',
+  researcherTagContinue: 'Continue',
+  researcherTagExhaustedTitle: 'Mapping could not be completed',
+  researcherTagExhaustedBody:
+    'Domain, Function, and Form could not all be confirmed in the attempts available. The tool does not infer a mapping where the description gives none.',
+
+  researcherGateTitle: 'Decision gate and responsibility',
+  researcherGateIntro: 'One last reflection before your prediction is compared to similar cases.',
+  researcherGateQuestion: "Which gate does this technology's dual-use risk mainly turn on?",
+  researcherGatePostureHint:
+    'Beyond your own intended use, who else could make use of this technology?',
+  researcherGateSubmit: 'Continue',
+  researcherGateSubmitting: 'Saving...',
+  researcherGateDoneTitle: 'Recorded',
+  researcherGateDoneBody: 'Your gate and reflection are saved.',
+
+  researcherComparisonSetTitle: 'Comparison set',
+  researcherComparisonSetPlaceholderNotice:
+    'Temporary placeholder — this screen has not been built yet. It only confirms that your gate and reflection were recorded correctly.',
+  researcherComparisonSetGateLabel: 'Decision gate',
+
+  researcherSessionMissing: 'No Researcher session is active.',
 
   intakeTitle: 'Before you begin',
   intakeIntro: 'A few quick questions to set up your session.',

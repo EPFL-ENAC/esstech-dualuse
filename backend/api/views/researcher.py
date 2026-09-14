@@ -18,8 +18,10 @@ from api.services.researcher import (
     TagSubmission,
     TechnologyIntakeCreate,
     TechnologyIntakeCreated,
+    TechnologyIntakeState,
     build_comparison_set,
     create_technology_intake,
+    get_technology_intake,
     reveal_prediction_comparison,
     set_gate_and_posture,
     submit_prediction,
@@ -58,6 +60,29 @@ async def post_researcher_intake(
         session_id=session_id,
         route=owned_session.route,
         raw_description=body.raw_description,
+    )
+
+
+@router.get(
+    "/sessions/{session_id}/researcher/intake",
+    response_model=TechnologyIntakeState,
+    summary="Read the technology intake state",
+    description=(
+        "Return this session's stored technology intake so a reloaded page "
+        "can resume mid-flow. 404s if no intake has been started yet."
+    ),
+    tags=["Researcher"],
+)
+async def get_researcher_intake(
+    session_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    learner_id: UUID = Depends(get_current_learner),
+) -> TechnologyIntakeState:
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    return await get_technology_intake(
+        session, session_id=session_id, route=owned_session.route
     )
 
 

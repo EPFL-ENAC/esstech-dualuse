@@ -21,6 +21,10 @@ const routes: RouteRecordRaw[] = [
         path: 'researcher/intake',
         component: () => import('pages/ResearcherIntakePage.vue'),
       },
+      {
+        path: 'researcher/comparison-set',
+        component: () => import('pages/ResearcherComparisonSetPage.vue'),
+      },
     ],
   },
 
