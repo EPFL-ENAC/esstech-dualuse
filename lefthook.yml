@@ -50,14 +50,15 @@ pre-commit:
       run: uvx ruff@0.15.13 format {staged_files}
       stage_fixed: true
     codespell:
-      # portait, constitue, fonction, correspondance, comparaison: French
-      # ("was carrying/holding", imperfect of porter; "constitutes";
-      # "function"; "match/correspondence"; "comparison") -- codespell has
+      # portait, constitue, fonction, correspondance, comparaison, projet,
+      # combinaison, limite: French ("was carrying/holding", imperfect of
+      # porter; "constitutes"; "function"; "match/correspondence";
+      # "comparison"; "project"; "combination"; "limit") -- codespell has
       # no French dictionary.
       # fase: Italian ("phase"), used verbatim in code comments citing the
       # flow spec's own section numbering (e.g. "Fase 6") -- not a typo of
       # "phase".
-      run: uvx codespell@2.4.2 --skip="frontend/package-lock.json" --ignore-words-list="portait,constitue,fase,fonction,correspondance,comparaison" {staged_files}
+      run: uvx codespell@2.4.2 --skip="frontend/package-lock.json" --ignore-words-list="portait,constitue,fase,fonction,correspondance,comparaison,projet,combinaison,limite" {staged_files}
 
 commit-msg:
   commands:
