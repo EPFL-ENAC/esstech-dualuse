@@ -58,9 +58,43 @@ export default {
   researcherGateDoneBody: 'Your gate and reflection are saved.',
 
   researcherComparisonSetTitle: 'Comparison set',
-  researcherComparisonSetPlaceholderNotice:
-    'Temporary placeholder — this screen has not been built yet. It only confirms that your gate and reflection were recorded correctly.',
-  researcherComparisonSetGateLabel: 'Decision gate',
+  researcherComparisonSetIntro: 'Match your technology against similar cases in the corpus.',
+  researcherComparisonSetBuild: 'Build comparison set',
+  researcherComparisonSetBuilding: 'Building...',
+  researcherComparisonSetCaseCount: '{count} cases in your comparison set.',
+  researcherComparisonSetWidenedNotice:
+    "Not enough cases shared your technology's function, so this set was widened by domain to reach a minimum comparison size.",
+
+  researcherPredictionTitle: 'Your prediction',
+  researcherPredictionHint:
+    'Rank the patterns you expect to be most active across this comparison set.',
+  researcherPredictionRankLabel: 'Prediction {rank}',
+  researcherPredictionRankOptional: 'Prediction 3 (optional)',
+  researcherPredictionDuplicateError: 'Each prediction must be a different pattern.',
+  researcherPredictionSubmit: 'Submit prediction',
+  researcherPredictionSubmitting: 'Saving...',
+  researcherPredictionSaved: 'Prediction saved.',
+
+  researcherRevealAction: 'Reveal comparison',
+  researcherRevealLoading: 'Revealing...',
+  researcherRevealTitle: 'Pattern distribution',
+  researcherRevealDominantLabel: 'Dominant pattern',
+  researcherRevealSecondaryLabel: 'Secondary patterns',
+  researcherRevealLowActivationMessage:
+    'No pattern is activated across this comparison set. The tool does not infer a dominant pattern where the corpus has none.',
+  researcherRevealYourPredictions: 'Your predictions',
+  researcherRevealTopMatchesDominant: 'Your top prediction matches the dominant pattern.',
+  researcherRevealTopDoesNotMatchDominant:
+    'Your top prediction does not match the dominant pattern.',
+  researcherRevealInSecondaryLabel: 'Also present as secondary',
+  researcherRevealNotActivatedLabel: 'Not activated in this set',
+
+  researcherContrastQuestion:
+    "What's different about how responsibility is handled here, compared to your own technology?",
+
+  researcherCompleteTitle: 'Session complete',
+  researcherCompletePlaceholderNotice:
+    'Temporary placeholder — the Researcher debrief has not been built yet. It only confirms that your contrast reflection was recorded correctly.',
 
   researcherSessionMissing: 'No Researcher session is active.',
 

@@ -62,9 +62,43 @@ export default {
   researcherGateDoneBody: 'Votre gate et votre réflexion sont enregistrés.',
 
   researcherComparisonSetTitle: 'Ensemble de comparaison',
-  researcherComparisonSetPlaceholderNotice:
-    'Espace réservé temporaire — cet écran n’a pas encore été développé. Il confirme seulement que votre gate et votre réflexion ont bien été enregistrés.',
-  researcherComparisonSetGateLabel: 'Gate',
+  researcherComparisonSetIntro: 'Comparez votre technologie à des cas similaires du corpus.',
+  researcherComparisonSetBuild: "Constituer l'ensemble de comparaison",
+  researcherComparisonSetBuilding: 'Constitution en cours...',
+  researcherComparisonSetCaseCount: '{count} cas dans votre ensemble de comparaison.',
+  researcherComparisonSetWidenedNotice:
+    'Trop peu de cas partageaient la fonction de votre technologie ; cet ensemble a été élargi par domaine pour atteindre une taille de comparaison minimale.',
+
+  researcherPredictionTitle: 'Votre prédiction',
+  researcherPredictionHint:
+    'Classez les patterns que vous vous attendez à voir les plus actifs dans cet ensemble de comparaison.',
+  researcherPredictionRankLabel: 'Prédiction {rank}',
+  researcherPredictionRankOptional: 'Prédiction 3 (facultatif)',
+  researcherPredictionDuplicateError: 'Chaque prédiction doit porter sur un pattern différent.',
+  researcherPredictionSubmit: 'Soumettre la prédiction',
+  researcherPredictionSubmitting: 'Enregistrement...',
+  researcherPredictionSaved: 'Prédiction enregistrée.',
+
+  researcherRevealAction: 'Révéler la comparaison',
+  researcherRevealLoading: 'Révélation...',
+  researcherRevealTitle: 'Répartition des patterns',
+  researcherRevealDominantLabel: 'Pattern dominant',
+  researcherRevealSecondaryLabel: 'Patterns secondaires',
+  researcherRevealLowActivationMessage:
+    'Aucun pattern n’est activé dans cet ensemble de comparaison. L’outil n’invente pas de pattern dominant là où le corpus n’en a pas.',
+  researcherRevealYourPredictions: 'Vos prédictions',
+  researcherRevealTopMatchesDominant: 'Votre première prédiction correspond au pattern dominant.',
+  researcherRevealTopDoesNotMatchDominant:
+    'Votre première prédiction ne correspond pas au pattern dominant.',
+  researcherRevealInSecondaryLabel: 'Également présents en tant que secondaires',
+  researcherRevealNotActivatedLabel: 'Non activés dans cet ensemble',
+
+  researcherContrastQuestion:
+    "Qu'est-ce qui diffère dans la manière dont la responsabilité est gérée ici, par rapport à votre propre technologie ?",
+
+  researcherCompleteTitle: 'Session terminée',
+  researcherCompletePlaceholderNotice:
+    'Espace réservé temporaire — le bilan chercheur n’a pas encore été développé. Il confirme seulement que votre réflexion de contraste a bien été enregistrée.',
 
   researcherSessionMissing: 'Aucune session chercheur active.',
 

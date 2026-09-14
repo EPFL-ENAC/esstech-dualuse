@@ -6,7 +6,7 @@
  * lives in api/sessions.ts, not here -- it is shared by both routes.
  */
 import { apiFetch } from 'boot/api';
-import type { Gate } from 'src/api/student';
+import type { ContrastType, Gate, Pattern } from 'src/api/student';
 
 export type Domain =
   | 'Material Science'
@@ -78,6 +78,58 @@ export interface GateAndPostureResult {
   posture_response: string;
 }
 
+/** The cases matched to a session's technology intake. */
+export interface ComparisonSetResult {
+  case_ids: string[];
+  was_widened: boolean;
+  case_count: number;
+}
+
+/** One ranked pattern in a submitted prediction set. */
+export interface PredictionEntry {
+  rank: number;
+  pattern: Pattern;
+}
+
+export interface PredictionSubmissionResult {
+  predictions: PredictionEntry[];
+}
+
+/**
+ * A session's prediction compared against its comparison set's tagged
+ * pattern distribution. Structured facts about two independently-stored
+ * things, not a verdict -- same framing as Student's reveal.
+ */
+export interface RevealComparison {
+  dominant_pattern: Pattern | null;
+  secondary_patterns: Pattern[];
+  predictions: PredictionEntry[];
+  top_prediction_is_dominant: boolean;
+  predictions_in_secondary: Pattern[];
+  predictions_not_activated: Pattern[];
+}
+
+/** The counter-case fields shown before the set-level WHO reflection. */
+export interface SetCounterCaseInfo {
+  counter_case_id: string;
+  gate_lever: Gate;
+  responsibility_posture_contrast: string;
+}
+
+/** Whether the session's comparison set has a linked counter-case. */
+export interface SetCounterCaseResponse {
+  has_counter_case: boolean;
+  counter_case: SetCounterCaseInfo | null;
+}
+
+/** The stored set-level contrast entry, whichever branch produced it. */
+export interface SetContrastResponse {
+  set_contrast_entry_id: string;
+  contrast_type: ContrastType;
+  learner_response: string | null;
+  created_at: string;
+}
+
 function postJson<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, {
     method: 'POST',
@@ -135,4 +187,66 @@ export function setGateAndPosture(
     `/sessions/${sessionId}/researcher/gate-and-posture`,
     payload,
   );
+}
+
+/**
+ * Match the session's technology intake against the case corpus.
+ *
+ * Idempotent: computed once, then returned unchanged on every later call,
+ * the same as Student's reveal.
+ */
+export function buildComparisonSet(sessionId: string): Promise<ComparisonSetResult> {
+  return apiFetch<ComparisonSetResult>(`/sessions/${sessionId}/researcher/comparison-set`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Submit the session's one-shot ranked pattern prediction (2 or 3 entries).
+ * A second submission for the same session is rejected.
+ */
+export function submitPrediction(
+  sessionId: string,
+  predictions: PredictionEntry[],
+): Promise<PredictionSubmissionResult> {
+  return postJson<PredictionSubmissionResult>(`/sessions/${sessionId}/researcher/prediction`, {
+    predictions,
+  });
+}
+
+/**
+ * Compare the session's submitted prediction against its comparison set's
+ * tagged-pattern distribution. Recomputed on every call: the underlying
+ * data never changes once the comparison set and prediction exist.
+ */
+export function revealPredictionComparison(sessionId: string): Promise<RevealComparison> {
+  return apiFetch<RevealComparison>(`/sessions/${sessionId}/researcher/reveal`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Look up the comparison set's counter-case, if any.
+ *
+ * Never a 404 for "no counter-case" -- that is a valid corpus state,
+ * reported as `has_counter_case: false`, not an error. Mirrors
+ * getCounterCase (api/student.ts).
+ */
+export function getSetCounterCase(sessionId: string): Promise<SetCounterCaseResponse> {
+  return apiFetch<SetCounterCaseResponse>(`/sessions/${sessionId}/researcher/counter-case`);
+}
+
+/**
+ * Submit the post-reveal contrast reflection.
+ *
+ * Safe to call repeatedly: the backend derives contrast_type itself and
+ * returns the stored entry afterwards, the same as Student's submitContrast.
+ */
+export function submitSetContrast(
+  sessionId: string,
+  learnerResponse: string | null,
+): Promise<SetContrastResponse> {
+  return postJson<SetContrastResponse>(`/sessions/${sessionId}/researcher/contrast`, {
+    learner_response: learnerResponse,
+  });
 }

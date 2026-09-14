@@ -12,7 +12,7 @@
       <q-separator />
 
       <q-card-section>
-        <div class="text-subtitle2 q-mb-sm">{{ t('contrastWhoQuestion') }}</div>
+        <div class="text-subtitle2 q-mb-sm">{{ t(questionKey) }}</div>
         <q-input
           v-model="response"
           :label="t('contrastResponseLabel')"
@@ -51,18 +51,44 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { ContrastResponse, CounterCaseResponse } from 'src/api/student';
+import type { Gate } from 'src/api/student';
 import { GATE_DISPLAY_BY_ID } from 'src/content/patterns';
 
 defineOptions({
   name: 'ContrastPanel',
 });
 
-const props = defineProps<{
-  counterCase: CounterCaseResponse;
-  contrast: ContrastResponse | null;
-  submitting: boolean;
-}>();
+// Structural, not imported from api/student.ts: this is the minimal shape
+// this component actually reads (has_counter_case, counter_case.{gate_lever,
+// responsibility_posture_contrast}, contrast.learner_response -- nothing
+// else). Both Student's CounterCaseResponse/ContrastResponse and
+// Researcher's SetCounterCaseResponse/SetContrastResponse satisfy this
+// already, so both routes can pass their own real response types here
+// without an adapter.
+interface ContrastPanelCounterCase {
+  has_counter_case: boolean;
+  counter_case: {
+    gate_lever: Gate;
+    responsibility_posture_contrast: string;
+  } | null;
+}
+
+interface ContrastPanelContrast {
+  learner_response: string | null;
+}
+
+const props = withDefaults(
+  defineProps<{
+    counterCase: ContrastPanelCounterCase;
+    contrast: ContrastPanelContrast | null;
+    submitting: boolean;
+    /** i18n key for the reflection question, shown only on the twin
+     * branch. Defaults to Student's own wording so this stays a no-op
+     * for every existing call site. */
+    questionKey?: string;
+  }>(),
+  { questionKey: 'contrastWhoQuestion' },
+);
 const emit = defineEmits<{ submit: [learnerResponse: string] }>();
 
 const { t } = useI18n();
