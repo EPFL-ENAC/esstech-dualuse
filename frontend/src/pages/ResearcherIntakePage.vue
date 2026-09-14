@@ -133,7 +133,9 @@
 
         <!-- Step 3: bounded retry exhausted, not mapped. Terminal: no
              retry button exists here, matching that submitTag itself
-             hard-rejects a third attempt. -->
+             hard-rejects a third attempt. A second action reaches the
+             debrief's boundary_exit branch through normal navigation,
+             not only by direct URL. -->
         <q-card v-else-if="intakeStore.step === 'exhausted'" flat bordered>
           <q-card-section>
             <div class="text-subtitle1">{{ t('researcherTagExhaustedTitle') }}</div>
@@ -141,6 +143,12 @@
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat :label="t('goHome')" to="/" />
+            <q-btn
+              color="primary"
+              unelevated
+              :label="t('researcherTagViewSummary')"
+              to="/researcher/complete"
+            />
           </q-card-actions>
         </q-card>
 

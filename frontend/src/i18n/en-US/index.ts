@@ -46,6 +46,7 @@ export default {
   researcherTagExhaustedTitle: 'Mapping could not be completed',
   researcherTagExhaustedBody:
     'Domain, Function, and Form could not all be confirmed in the attempts available. The tool does not infer a mapping where the description gives none.',
+  researcherTagViewSummary: 'View session summary',
 
   researcherGateTitle: 'Decision gate and responsibility',
   researcherGateIntro: 'One last reflection before your prediction is compared to similar cases.',
@@ -92,9 +93,19 @@ export default {
   researcherContrastQuestion:
     "What's different about how responsibility is handled here, compared to your own technology?",
 
+  researcherReflectionFullMatchesDominant:
+    'Your top-ranked prediction matched the dominant pattern across this comparison set. Which secondary pattern would you look at next in a similar project, and why?',
+  researcherReflectionFullDoesNotMatch:
+    'Your top-ranked prediction did not match the dominant pattern across this comparison set. What led you to expect a different pattern? Which case in the comparison set would you revisit first?',
+  researcherReflectionZeroPattern:
+    'No pattern was dominant across this comparison set — the corpus does not yet offer a clear signal for this combination of domain and function. This is a limit of the current case corpus, not a judgment on your work.',
+  researcherReflectionBoundaryExit:
+    "Your description could not be mapped to a domain, function, and form within the attempts available. This may mean the framework's current facets do not yet capture this kind of technology — a real limit of the corpus, not something you did wrong.",
+
   researcherCompleteTitle: 'Session complete',
-  researcherCompletePlaceholderNotice:
-    'Temporary placeholder — the Researcher debrief has not been built yet. It only confirms that your contrast reflection was recorded correctly.',
+  researcherCompleteNotYetBody:
+    'You have not yet reached the comparison-set reflection in this session.',
+  researcherReset: 'Start over',
 
   researcherSessionMissing: 'No Researcher session is active.',
 

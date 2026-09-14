@@ -130,6 +130,37 @@ export interface SetContrastResponse {
   created_at: string;
 }
 
+export type TraceCompleteness = 'full' | 'boundary_exit' | 'zero_pattern' | 'in_progress';
+
+/**
+ * The Researcher-route debrief: a read-only aggregation over the session's
+ * technology intake, comparison set, prediction, and set-level contrast.
+ *
+ * Every field below is absent, not null, unless trace_completeness has
+ * actually reached the point that field is meaningful -- absent means "not
+ * reached yet", never "empty result". A list-typed field can still
+ * legitimately be an empty array once present (e.g. secondary_patterns: []
+ * in a real "full" report where nothing secondary activated).
+ */
+export interface ResearcherSessionReport {
+  trace_completeness: TraceCompleteness;
+  domain?: Domain;
+  functions?: Function[];
+  forms?: Form[];
+  gate?: Gate;
+  posture_response?: string;
+  case_count?: number;
+  was_widened?: boolean;
+  predictions?: PredictionEntry[];
+  dominant_pattern?: Pattern;
+  secondary_patterns?: Pattern[];
+  top_prediction_is_dominant?: boolean;
+  contrast_type?: ContrastType;
+  learner_response?: string;
+  gate_lever?: Gate;
+  reflection_prompt_key?: string;
+}
+
 function postJson<T>(path: string, body: unknown): Promise<T> {
   return apiFetch<T>(path, {
     method: 'POST',
@@ -249,4 +280,12 @@ export function submitSetContrast(
   return postJson<SetContrastResponse>(`/sessions/${sessionId}/researcher/contrast`, {
     learner_response: learnerResponse,
   });
+}
+
+/**
+ * Get the session's debrief and report: a read-only aggregation over the
+ * technology intake, comparison set, prediction, and set-level contrast.
+ */
+export function getResearcherSessionReport(sessionId: string): Promise<ResearcherSessionReport> {
+  return apiFetch<ResearcherSessionReport>(`/sessions/${sessionId}/researcher/report`);
 }

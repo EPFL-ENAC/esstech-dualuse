@@ -48,6 +48,7 @@ export default {
   researcherTagExhaustedTitle: 'La cartographie n’a pas pu être complétée',
   researcherTagExhaustedBody:
     'Le domaine, la fonction et la forme n’ont pas pu être confirmés dans les tentatives disponibles. L’outil n’invente pas de correspondance là où la description n’en donne pas.',
+  researcherTagViewSummary: 'Voir le résumé de la session',
 
   researcherGateTitle: 'Gate et responsabilité',
   researcherGateIntro:
@@ -96,9 +97,19 @@ export default {
   researcherContrastQuestion:
     "Qu'est-ce qui diffère dans la manière dont la responsabilité est gérée ici, par rapport à votre propre technologie ?",
 
+  researcherReflectionFullMatchesDominant:
+    'Votre première prédiction correspond au pattern dominant de cet ensemble de comparaison. Quel pattern secondaire examineriez-vous ensuite dans un projet similaire, et pourquoi ?',
+  researcherReflectionFullDoesNotMatch:
+    "Votre première prédiction ne correspond pas au pattern dominant de cet ensemble de comparaison. Qu'est-ce qui vous a fait anticiper un pattern différent ? Quel cas de l'ensemble de comparaison reverriez-vous en premier ?",
+  researcherReflectionZeroPattern:
+    "Aucun pattern n'est dominant dans cet ensemble de comparaison — le corpus n'offre pas encore de signal net pour cette combinaison de domaine et de fonction. Il s'agit d'une limite du corpus de cas actuel, non d'un jugement sur votre travail.",
+  researcherReflectionBoundaryExit:
+    "Votre description n'a pas pu être rattachée à un domaine, une fonction et une forme dans les tentatives disponibles. Cela peut signifier que les catégories actuelles du cadre ne couvrent pas encore ce type de technologie — une limite réelle du corpus, pas une erreur de votre part.",
+
   researcherCompleteTitle: 'Session terminée',
-  researcherCompletePlaceholderNotice:
-    'Espace réservé temporaire — le bilan chercheur n’a pas encore été développé. Il confirme seulement que votre réflexion de contraste a bien été enregistrée.',
+  researcherCompleteNotYetBody:
+    "Vous n'avez pas encore atteint la réflexion sur l'ensemble de comparaison dans cette session.",
+  researcherReset: 'Recommencer',
 
   researcherSessionMissing: 'Aucune session chercheur active.',
 
