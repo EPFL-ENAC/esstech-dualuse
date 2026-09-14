@@ -116,3 +116,68 @@ class ContrastType(str, Enum):
 
     TWIN_COUNTER_CASE = "twin_counter_case"
     OPEN_AREA = "open_area"
+
+
+class Domain(str, Enum):
+    """The technology domain a researcher's project belongs to.
+
+    Part of the Function/Form/Domain taxonomy confirmed by the team
+    (Louis). Values are the exact display strings, not codes -- matched
+    and rendered verbatim, so do not alter them.
+    """
+
+    MATERIAL_SCIENCE = "Material Science"
+    ADVANCED_MANUFACTURING = "Advanced Manufacturing / 3D Printing"
+    SEMICONDUCTORS_NANOTECH = "Semiconductors and Nanotechnology"
+    ARTIFICIAL_INTELLIGENCE = "Artificial Intelligence"
+    CYBER_TECHNOLOGIES = "Cyber Technologies"
+    QUANTUM_TECHNOLOGY = "Quantum Technology"
+    ROBOTICS_AUTONOMOUS = "Robotics & Autonomous Systems"
+    NEUROTECHNOLOGY = "Neurotechnology"
+    BIOCHEMISTRY = "Biochemistry"
+
+
+class Function(str, Enum):
+    """What a technology does.
+
+    The Function facet of the Function/Form/Domain taxonomy used to match
+    a researcher's project against the case corpus.
+    """
+
+    SENSING = "sensing"
+    GENERATING = "generating"
+    CONTROLLING = "controlling"
+    PREDICTING = "predicting"
+    EDITING = "editing"
+    OPTIMIZING = "optimizing"
+    FABRICATING = "fabricating"
+    COMPUTING = "computing"
+
+
+class Form(str, Enum):
+    """What shape a technology takes.
+
+    The Form facet of the Function/Form/Domain taxonomy.
+    """
+
+    PLATFORM = "platform"
+    MODEL = "model"
+    DATASET = "dataset"
+    PROTOCOL = "protocol"
+    DEVICE = "device"
+    INFRASTRUCTURE = "infrastructure"
+    MATERIAL = "material"
+    METHOD = "method"
+
+
+class MappingStatus(str, Enum):
+    """How completely a TechnologyIntake's Function/Form/Domain facets are
+    filled in.
+
+    MAPPED: domain, functions, and forms are all present. PARTIAL: at least
+    one is present, but not all three. UNMAPPED: none are present yet.
+    """
+
+    MAPPED = "mapped"
+    PARTIAL = "partial"
+    UNMAPPED = "unmapped"

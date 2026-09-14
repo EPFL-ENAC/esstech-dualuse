@@ -7,7 +7,7 @@ from api.db import get_db_session
 from api.dependencies import get_current_learner
 from api.services.encounters import EncounterCreate, EncounterCreated, create_encounter
 from api.services.report import SessionReport, get_session_report
-from api.services.sessions import SessionCreated, create_session
+from api.services.sessions import SessionCreate, SessionCreated, create_session
 
 router = APIRouter()
 
@@ -17,13 +17,20 @@ router = APIRouter()
     response_model=SessionCreated,
     status_code=status.HTTP_201_CREATED,
     summary="Start a session",
-    description="Start a student/individual session for the current learner.",
+    description=(
+        "Start an individual session for the current learner. Defaults to "
+        "the Student route when the body is omitted or route is not set, "
+        "unchanged from before the Researcher route existed."
+    ),
     tags=["Sessions"],
 )
 async def post_session(
+    body: SessionCreate | None = None,
     session: AsyncSession = Depends(get_db_session),
     learner_id: UUID = Depends(get_current_learner),
 ) -> SessionCreated:
+    if body is not None:
+        return await create_session(session, learner_id=learner_id, route=body.route)
     return await create_session(session, learner_id=learner_id)
 
 

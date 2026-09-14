@@ -16,6 +16,7 @@ from api.views.cases import router as cases_router
 from api.views.dummy import router as dummy_router
 from api.views.encounters import router as encounters_router
 from api.views.intake import router as intake_router
+from api.views.researcher import router as researcher_router
 from api.views.sessions import router as sessions_router
 
 basicConfig(level=INFO)
@@ -104,4 +105,9 @@ app.include_router(
 app.include_router(
     intake_router,
     tags=["Intake"],
+)
+
+app.include_router(
+    researcher_router,
+    tags=["Researcher"],
 )

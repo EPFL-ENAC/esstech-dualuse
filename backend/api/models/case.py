@@ -4,7 +4,16 @@ from uuid import UUID, uuid4
 from sqlalchemy import JSON, Column, DateTime
 from sqlmodel import Field, SQLModel
 
-from api.models.enums import CaseStatus, CaseType, Gate, Pattern, sa_enum
+from api.models.enums import (
+    CaseStatus,
+    CaseType,
+    Domain,
+    Form,
+    Function,
+    Gate,
+    Pattern,
+    sa_enum,
+)
 
 
 def _utc_now() -> datetime:
@@ -33,6 +42,18 @@ class Case(SQLModel, table=True):
     # Free-text citations, displayed as-is and never filtered on, so a JSON list
     # is enough -- unlike tagged patterns/gates below, this needs no join table.
     source_references: list[str] = Field(
+        default_factory=list, sa_column=Column(JSON, nullable=False)
+    )
+    # Structured technology domain, used only by Researcher-route matching.
+    # Distinct from `area` above on purpose: `area` is free-text editorial
+    # copy already shown in the Student UI via CaseCandidate (verified
+    # end-to-end in Sprint 2, do not touch it), while `domain` is a fixed
+    # enum a case is tagged with for Function/Form/Domain comparison-set
+    # matching. This is not duplication to clean up later.
+    domain: Domain = Field(sa_column=Column(sa_enum(Domain), nullable=False))
+    # Never filtered or joined on, same reasoning as source_references above
+    # -- a JSON list is enough, no join table needed.
+    forms: list[Form] = Field(
         default_factory=list, sa_column=Column(JSON, nullable=False)
     )
     created_at: datetime = Field(
@@ -64,6 +85,17 @@ class CaseTaggedGate(SQLModel, table=True):
     case_id: UUID = Field(foreign_key="case.id", primary_key=True)
     gate: Gate = Field(
         sa_column=Column(sa_enum(Gate), primary_key=True, nullable=False)
+    )
+
+
+class CaseTaggedFunction(SQLModel, table=True):
+    """One function tagged on a case. A case can carry several functions."""
+
+    __tablename__ = "case_tagged_function"
+
+    case_id: UUID = Field(foreign_key="case.id", primary_key=True)
+    function: Function = Field(
+        sa_column=Column(sa_enum(Function), primary_key=True, nullable=False)
     )
 
 

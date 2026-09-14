@@ -53,7 +53,13 @@ class CommitmentCreated(BaseModel):
 async def get_owned_encounter(
     session: AsyncSession, *, encounter_id: UUID, learner_id: UUID
 ) -> CaseEncounter:
-    """Load an encounter, treating another learner's encounter as nonexistent."""
+    """Load an encounter, treating another learner's encounter as nonexistent.
+
+    Same gap as get_owned_session (api/services/sessions.py): ownership
+    only, no Session.route check. Every encounter-scoped Student service
+    that calls this (create_commitment below, contrast.py, feedback.py)
+    inherits it.
+    """
 
     record = (
         await session.exec(
