@@ -7,7 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.models import Session
 from api.models.enums import SessionMode, SessionRoute
-from api.services.errors import NotFoundError
+from api.services.errors import ConflictError, NotFoundError
 
 
 class SessionCreate(BaseModel):
@@ -60,15 +60,10 @@ async def get_owned_session(
 ) -> Session:
     """Load a session, treating another learner's session as nonexistent.
 
-    Ownership-only: unlike require_researcher_route on the Researcher side
-    (api/services/researcher.py), nothing here -- or in any Student-route
-    service that calls this (intake.py, encounters.py::create_encounter) --
-    checks Session.route. A Researcher-route session_id currently passes
-    every Student-route ownership check unchanged. Known gap, correctly out
-    of scope as of the M1 route-choice screen: flagged explicitly rather
-    than fixed silently. If this is ever closed, add a symmetric
-    require_student_route(route) check to each caller, mirroring
-    require_researcher_route.
+    Ownership-only, deliberately: this stays route-agnostic so both routes'
+    services can share it, the same way require_researcher_route
+    (api/services/researcher.py) and require_student_route below are two
+    separate, explicit checks rather than being folded in here.
     """
 
     record = (
@@ -82,3 +77,19 @@ async def get_owned_session(
         raise NotFoundError("Session not found")
 
     return record
+
+
+def require_student_route(route: SessionRoute) -> None:
+    """Reject a session that is not on the Student route.
+
+    Symmetric to require_researcher_route (api/services/researcher.py):
+    ownership alone (get_owned_session/get_owned_encounter) only confirms
+    whose session this is, not which flow it belongs to. Every Student-route
+    service function calls this immediately after obtaining the session's
+    route -- directly from get_owned_session, or via a second
+    get_owned_session lookup keyed on encounter.session_id for the
+    encounter-scoped ones, since CaseEncounter itself carries no route.
+    """
+
+    if route != SessionRoute.STUDENT:
+        raise ConflictError("Session is not a Student-route session")

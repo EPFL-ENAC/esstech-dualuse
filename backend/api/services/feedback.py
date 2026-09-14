@@ -10,6 +10,7 @@ from api.models import Case, Commitment, FeedbackRecord
 from api.models.enums import Gate, MatchResult, Pattern
 from api.services.encounters import get_owned_encounter
 from api.services.errors import ConflictError, NotFoundError
+from api.services.sessions import get_owned_session, require_student_route
 
 
 class RevealedCase(BaseModel):
@@ -66,6 +67,10 @@ async def reveal_encounter(
     encounter = await get_owned_encounter(
         session, encounter_id=encounter_id, learner_id=learner_id
     )
+    owned_session = await get_owned_session(
+        session, session_id=encounter.session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     case = await session.get(Case, encounter.case_id)
     if case is None:

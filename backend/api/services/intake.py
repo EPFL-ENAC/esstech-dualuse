@@ -24,7 +24,7 @@ from api.content.intake_key import (
 from api.models import SessionIntake
 from api.models.enums import ScaffoldingDepth
 from api.services.errors import ConflictError, NotFoundError, ValidationError
-from api.services.sessions import get_owned_session
+from api.services.sessions import get_owned_session, require_student_route
 
 
 class DiagnosticSubmission(BaseModel):
@@ -120,7 +120,10 @@ async def submit_diagnostic(
     session_id rather than overwriting a score the learner has already seen.
     """
 
-    await get_owned_session(session, session_id=session_id, learner_id=learner_id)
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     existing = await _find_intake(session, session_id=session_id)
     if existing is not None:
@@ -187,7 +190,10 @@ async def submit_comprehension(
     reads back whatever the winner stored.
     """
 
-    await get_owned_session(session, session_id=session_id, learner_id=learner_id)
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     record = await _find_intake(session, session_id=session_id)
     if record is None:
@@ -250,7 +256,10 @@ async def get_intake(
 ) -> IntakeState:
     """Return the stored intake, so a reloaded page can resume mid-flow."""
 
-    await get_owned_session(session, session_id=session_id, learner_id=learner_id)
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     record = await _find_intake(session, session_id=session_id)
     if record is None:

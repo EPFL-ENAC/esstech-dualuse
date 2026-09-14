@@ -10,6 +10,7 @@ from api.models import ContrastEntry, CounterCaseLink
 from api.models.enums import ContrastType, Gate
 from api.services.encounters import get_owned_encounter
 from api.services.errors import ValidationError
+from api.services.sessions import get_owned_session, require_student_route
 
 
 class CounterCaseInfo(BaseModel):
@@ -85,6 +86,10 @@ async def look_up_counter_case(
     encounter = await get_owned_encounter(
         session, encounter_id=encounter_id, learner_id=learner_id
     )
+    owned_session = await get_owned_session(
+        session, session_id=encounter.session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     link = await find_counter_case_link(session, case_id=encounter.case_id)
     if link is None:
@@ -120,6 +125,10 @@ async def submit_contrast(
     encounter = await get_owned_encounter(
         session, encounter_id=encounter_id, learner_id=learner_id
     )
+    owned_session = await get_owned_session(
+        session, session_id=encounter.session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     existing = await _find_contrast_entry(session, encounter_id=encounter_id)
     if existing is not None:

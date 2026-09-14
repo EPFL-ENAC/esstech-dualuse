@@ -15,7 +15,7 @@ from api.models import (
 )
 from api.models.enums import ContrastType, Gate, MatchResult, Pattern, ScaffoldingDepth
 from api.services.contrast import find_counter_case_link
-from api.services.sessions import get_owned_session
+from api.services.sessions import get_owned_session, require_student_route
 
 
 class CompletedEncounterReport(BaseModel):
@@ -126,7 +126,10 @@ async def get_session_report(
     idempotency concern here the way there is for reveal or contrast.
     """
 
-    await get_owned_session(session, session_id=session_id, learner_id=learner_id)
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     states = await _load_encounter_states(session, session_id=session_id)
 

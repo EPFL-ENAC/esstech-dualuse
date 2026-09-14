@@ -11,7 +11,7 @@ from api.models import Case, CaseEncounter, Commitment, Session
 from api.models.enums import CaseStatus, CaseType, Gate, Pattern
 from api.services.cases import CaseCandidate, to_candidate
 from api.services.errors import ConflictError, NotFoundError
-from api.services.sessions import get_owned_session
+from api.services.sessions import get_owned_session, require_student_route
 
 
 class EncounterCreate(BaseModel):
@@ -55,10 +55,11 @@ async def get_owned_encounter(
 ) -> CaseEncounter:
     """Load an encounter, treating another learner's encounter as nonexistent.
 
-    Same gap as get_owned_session (api/services/sessions.py): ownership
-    only, no Session.route check. Every encounter-scoped Student service
-    that calls this (create_commitment below, contrast.py, feedback.py)
-    inherits it.
+    Ownership-only, deliberately: stays route-agnostic like get_owned_session
+    (api/services/sessions.py). CaseEncounter carries no route itself, so
+    every encounter-scoped caller (create_commitment below, feedback.py,
+    contrast.py) follows this with a get_owned_session lookup keyed on
+    encounter.session_id, then require_student_route on its result.
     """
 
     record = (
@@ -82,7 +83,10 @@ async def create_encounter(
 ) -> EncounterCreated:
     """Select a case into a session as its next encounter."""
 
-    await get_owned_session(session, session_id=session_id, learner_id=learner_id)
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     case = (
         await session.exec(
@@ -147,6 +151,10 @@ async def create_commitment(
     encounter = await get_owned_encounter(
         session, encounter_id=encounter_id, learner_id=learner_id
     )
+    owned_session = await get_owned_session(
+        session, session_id=encounter.session_id, learner_id=learner_id
+    )
+    require_student_route(owned_session.route)
 
     already_committed = (
         await session.exec(
