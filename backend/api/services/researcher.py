@@ -289,12 +289,16 @@ async def create_technology_intake(
 MAX_TAG_ATTEMPTS = 2
 
 
-def _attempts_remaining(intake: TechnologyIntake) -> int:
+def attempts_remaining(intake: TechnologyIntake) -> int:
     """How many /tag attempts this intake has left.
 
-    Shared by submit_tag (computed right after writing a new attempt) and
-    get_technology_intake (computed from whatever is already stored), so
-    the two never drift into disagreeing about the same rule.
+    Shared by submit_tag (computed right after writing a new attempt),
+    get_technology_intake (computed from whatever is already stored), and
+    researcher_report.py's boundary_exit check (0 remaining while not yet
+    MAPPED), so none of the three drift into disagreeing about the same
+    rule. Public rather than private: the same reasoning as
+    contrast.py's find_counter_case_link -- a helper stops being private
+    once a second module needs it.
     """
 
     if intake.mapping_status == MappingStatus.MAPPED:
@@ -353,7 +357,7 @@ async def submit_tag(
         functions=intake.functions or [],
         forms=intake.forms or [],
         mapping_status=intake.mapping_status,
-        attempts_remaining=_attempts_remaining(intake),
+        attempts_remaining=attempts_remaining(intake),
     )
 
 
@@ -386,7 +390,7 @@ async def get_technology_intake(
         functions=intake.functions or [],
         forms=intake.forms or [],
         mapping_status=intake.mapping_status,
-        attempts_remaining=_attempts_remaining(intake),
+        attempts_remaining=attempts_remaining(intake),
         gate=intake.gate,
         posture_response=intake.posture_response,
         created_at=intake.created_at,
@@ -501,9 +505,12 @@ async def submit_prediction(
     return PredictionSubmissionResult(predictions=predictions)
 
 
-async def _find_comparison_set(
+async def find_comparison_set(
     session: AsyncSession, *, session_id: UUID
 ) -> ComparisonSet | None:
+    """Public rather than private: researcher_report.py also needs this
+    lookup, the same reasoning as contrast.py's find_counter_case_link."""
+
     return (
         await session.exec(
             select(ComparisonSet).where(ComparisonSet.session_id == session_id)
@@ -598,7 +605,7 @@ async def build_comparison_set(
 
     require_researcher_route(route)
 
-    existing = await _find_comparison_set(session, session_id=session_id)
+    existing = await find_comparison_set(session, session_id=session_id)
     if existing is not None:
         return await _respond(session, existing)
 
@@ -642,7 +649,7 @@ async def build_comparison_set(
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        existing = await _find_comparison_set(session, session_id=session_id)
+        existing = await find_comparison_set(session, session_id=session_id)
         if existing is None:
             raise
         return await _respond(session, existing)
@@ -739,7 +746,7 @@ async def reveal_prediction_comparison(
 
     require_researcher_route(route)
 
-    comparison_set = await _find_comparison_set(session, session_id=session_id)
+    comparison_set = await find_comparison_set(session, session_id=session_id)
     if comparison_set is None:
         raise ConflictError("Session has no comparison set to reveal against")
 
@@ -795,9 +802,12 @@ async def reveal_prediction_comparison(
     )
 
 
-async def _find_set_contrast_entry(
+async def find_set_contrast_entry(
     session: AsyncSession, *, session_id: UUID
 ) -> SetContrastEntry | None:
+    """Public rather than private: researcher_report.py also needs this
+    lookup, the same reasoning as contrast.py's find_counter_case_link."""
+
     return (
         await session.exec(
             select(SetContrastEntry).where(SetContrastEntry.session_id == session_id)
@@ -805,7 +815,7 @@ async def _find_set_contrast_entry(
     ).first()
 
 
-async def _find_set_counter_case_link(
+async def find_set_counter_case_link(
     session: AsyncSession, *, case_ids: list[UUID]
 ) -> CounterCaseLink | None:
     """Whether any case in `case_ids` has a linked counter-case, as the harm case.
@@ -814,7 +824,8 @@ async def _find_set_counter_case_link(
     cases rather than one -- the comparison set's contrast question is
     about the pattern across the set, not one specific case's link. Empty
     `case_ids` returns immediately, same reasoning as the other empty-input
-    guards in this file.
+    guards in this file. Public rather than private: researcher_report.py
+    also needs this lookup.
     """
 
     if not case_ids:
@@ -841,7 +852,7 @@ async def look_up_set_counter_case(
 
     require_researcher_route(route)
 
-    comparison_set = await _find_comparison_set(session, session_id=session_id)
+    comparison_set = await find_comparison_set(session, session_id=session_id)
     if comparison_set is None:
         raise ConflictError("Session has no comparison set to check for a counter-case")
 
@@ -853,7 +864,7 @@ async def look_up_set_counter_case(
         )
     ).all()
 
-    link = await _find_set_counter_case_link(session, case_ids=list(case_ids))
+    link = await find_set_counter_case_link(session, case_ids=list(case_ids))
     if link is None:
         return SetCounterCaseResponse(has_counter_case=False, counter_case=None)
 
@@ -896,11 +907,11 @@ async def submit_set_contrast(
 
     require_researcher_route(route)
 
-    existing = await _find_set_contrast_entry(session, session_id=session_id)
+    existing = await find_set_contrast_entry(session, session_id=session_id)
     if existing is not None:
         return _respond_set_contrast(existing)
 
-    comparison_set = await _find_comparison_set(session, session_id=session_id)
+    comparison_set = await find_comparison_set(session, session_id=session_id)
     if comparison_set is None:
         raise ConflictError("Session has no comparison set to contrast against")
 
@@ -912,7 +923,7 @@ async def submit_set_contrast(
         )
     ).all()
 
-    link = await _find_set_counter_case_link(session, case_ids=list(case_ids))
+    link = await find_set_counter_case_link(session, case_ids=list(case_ids))
     if link is not None:
         if not (learner_response and learner_response.strip()):
             raise ValidationError("A reflection response is required")
@@ -932,7 +943,7 @@ async def submit_set_contrast(
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        existing = await _find_set_contrast_entry(session, session_id=session_id)
+        existing = await find_set_contrast_entry(session, session_id=session_id)
         if existing is None:
             raise
         return _respond_set_contrast(existing)

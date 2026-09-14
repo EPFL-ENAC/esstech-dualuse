@@ -90,6 +90,7 @@ RESEARCHER_ENDPOINTS = [
     ("post", "/sessions/{id}/researcher/reveal", None),
     ("get", "/sessions/{id}/researcher/counter-case", None),
     ("post", "/sessions/{id}/researcher/contrast", {}),
+    ("get", "/sessions/{id}/researcher/report", None),
 ]
 
 

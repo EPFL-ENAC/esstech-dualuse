@@ -30,6 +30,10 @@ from api.services.researcher import (
     submit_set_contrast,
     submit_tag,
 )
+from api.services.researcher_report import (
+    ResearcherSessionReport,
+    get_researcher_session_report,
+)
 from api.services.sessions import get_owned_session
 
 router = APIRouter()
@@ -279,4 +283,27 @@ async def post_researcher_contrast(
         session_id=session_id,
         route=owned_session.route,
         learner_response=body.learner_response,
+    )
+
+
+@router.get(
+    "/sessions/{session_id}/researcher/report",
+    response_model=ResearcherSessionReport,
+    response_model_exclude_none=True,
+    summary="Get the session's reflection report",
+    description=(
+        "The Researcher-route debrief: a read-only aggregation over the "
+        "session's technology intake, comparison set, prediction, and "
+        "set-level contrast. Minimal when the trace has not reached "
+        "contrast yet, rather than empty lists or zeroed counts."
+    ),
+    tags=["Researcher"],
+)
+async def get_researcher_report(
+    session_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    learner_id: UUID = Depends(get_current_learner),
+) -> ResearcherSessionReport:
+    return await get_researcher_session_report(
+        session, session_id=session_id, learner_id=learner_id
     )
