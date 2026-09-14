@@ -87,6 +87,30 @@ class SetContrastResponse(BaseModel):
     created_at: datetime
 
 
+class SetCounterCaseInfo(BaseModel):
+    """The counter-case fields shown before the set-level WHO reflection.
+
+    Mirrors contrast.py's CounterCaseInfo exactly.
+    """
+
+    counter_case_id: UUID
+    gate_lever: Gate
+    responsibility_posture_contrast: str
+
+
+class SetCounterCaseResponse(BaseModel):
+    """Whether the session's comparison set has a linked counter-case.
+
+    Mirrors contrast.py's CounterCaseResponse: needed so the frontend can
+    show the twin-case content (or the open-area message) before asking
+    for a reflection, rather than submitting blind and discovering which
+    branch it was only from submit_set_contrast's own response.
+    """
+
+    has_counter_case: bool
+    counter_case: SetCounterCaseInfo | None
+
+
 class PredictionEntry(BaseModel):
     """One ranked pattern in a submitted prediction set."""
 
@@ -803,6 +827,44 @@ async def _find_set_counter_case_link(
             )
         )
     ).first()
+
+
+async def look_up_set_counter_case(
+    session: AsyncSession, *, session_id: UUID, route: SessionRoute
+) -> SetCounterCaseResponse:
+    """Report whether the session's comparison set has a linked counter-case.
+
+    Mirrors contrast.py's look_up_counter_case: a set with no counter-case
+    is a valid corpus state, not an error -- this never 404s for that
+    reason, only when there is no comparison set at all to check.
+    """
+
+    require_researcher_route(route)
+
+    comparison_set = await _find_comparison_set(session, session_id=session_id)
+    if comparison_set is None:
+        raise ConflictError("Session has no comparison set to check for a counter-case")
+
+    case_ids = (
+        await session.exec(
+            select(ComparisonSetCase.case_id).where(
+                ComparisonSetCase.comparison_set_id == comparison_set.id
+            )
+        )
+    ).all()
+
+    link = await _find_set_counter_case_link(session, case_ids=list(case_ids))
+    if link is None:
+        return SetCounterCaseResponse(has_counter_case=False, counter_case=None)
+
+    return SetCounterCaseResponse(
+        has_counter_case=True,
+        counter_case=SetCounterCaseInfo(
+            counter_case_id=link.counter_case_id,
+            gate_lever=link.gate_lever,
+            responsibility_posture_contrast=link.responsibility_posture_contrast,
+        ),
+    )
 
 
 def _respond_set_contrast(entry: SetContrastEntry) -> SetContrastResponse:

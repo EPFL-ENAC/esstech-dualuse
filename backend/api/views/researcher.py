@@ -14,6 +14,7 @@ from api.services.researcher import (
     RevealComparison,
     SetContrastResponse,
     SetContrastSubmission,
+    SetCounterCaseResponse,
     TagResult,
     TagSubmission,
     TechnologyIntakeCreate,
@@ -22,6 +23,7 @@ from api.services.researcher import (
     build_comparison_set,
     create_technology_intake,
     get_technology_intake,
+    look_up_set_counter_case,
     reveal_prediction_comparison,
     set_gate_and_posture,
     submit_prediction,
@@ -221,6 +223,31 @@ async def post_researcher_reveal(
         session, session_id=session_id, learner_id=learner_id
     )
     return await reveal_prediction_comparison(
+        session, session_id=session_id, route=owned_session.route
+    )
+
+
+@router.get(
+    "/sessions/{session_id}/researcher/counter-case",
+    response_model=SetCounterCaseResponse,
+    summary="Look up the comparison set's counter-case",
+    description=(
+        "Report whether any case in the session's comparison set has a "
+        "linked counter-case, and if so, its gate lever and responsibility "
+        "posture contrast -- shown before the contrast reflection question, "
+        "the same way Student's GET /encounters/{id}/counter-case is."
+    ),
+    tags=["Researcher"],
+)
+async def get_researcher_counter_case(
+    session_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    learner_id: UUID = Depends(get_current_learner),
+) -> SetCounterCaseResponse:
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    return await look_up_set_counter_case(
         session, session_id=session_id, route=owned_session.route
     )
 
