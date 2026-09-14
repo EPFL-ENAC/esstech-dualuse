@@ -6,6 +6,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { path: '', component: () => import('pages/IndexPage.vue') },
+      { path: 'start', component: () => import('pages/RouteChoicePage.vue') },
       { path: 'intake', component: () => import('pages/IntakePage.vue') },
       { path: 'student', component: () => import('pages/StudentSessionPage.vue') },
       {
@@ -15,6 +16,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'student/complete',
         component: () => import('pages/StudentCompletePage.vue'),
+      },
+      {
+        path: 'researcher/intake',
+        component: () => import('pages/ResearcherIntakePage.vue'),
       },
     ],
   },

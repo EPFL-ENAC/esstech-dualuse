@@ -11,6 +11,20 @@ export default {
   sessionStart: 'Démarrer une session',
   studentOpenDev: 'Accès direct au parcours étudiant (dev)',
 
+  routeChoiceTitle: 'Choisissez votre parcours',
+  routeChoiceIntro: 'Sélectionnez l’option qui correspond à ce que vous souhaitez faire.',
+  routeChoiceResearcherLabel: 'Parcours chercheur — individuel',
+  routeChoiceResearcherHint:
+    'Décrivez une technologie, précisez sa fonction et sa forme, puis comparez votre prédiction à des cas similaires.',
+  routeChoiceStudentAction: 'Continuer en tant qu’étudiant',
+  routeChoiceResearcherAction: 'Continuer en tant que chercheur',
+  routeChoiceStarting: 'Démarrage...',
+
+  researcherIntakeTitle: 'Prise en compte de la technologie',
+  researcherIntakePlaceholderNotice:
+    'Espace réservé temporaire — cet écran n’a pas encore été développé. Il confirme seulement que votre session en parcours chercheur a bien été créée.',
+  researcherIntakeSessionIdLabel: 'Identifiant de session',
+
   intakeTitle: 'Avant de commencer',
   intakeIntro: 'Quelques questions rapides pour préparer votre session.',
   intakeDiagnosticTitle: 'Trois questions rapides',

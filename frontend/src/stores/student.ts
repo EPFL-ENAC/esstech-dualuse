@@ -7,8 +7,8 @@ import type {
   CounterCaseResponse,
   EncounterCreated,
   RevealResponse,
-  SessionCreated,
 } from 'src/api/student';
+import type { SessionCreated } from 'src/api/sessions';
 
 /**
  * Flow state for the Student/Individual path.

@@ -100,8 +100,9 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { ApiError } from 'boot/api';
-import { createEncounter, createSession, listCandidateCases } from 'src/api/student';
+import { createEncounter, listCandidateCases } from 'src/api/student';
 import type { CaseCandidate } from 'src/api/student';
+import { createSession } from 'src/api/sessions';
 import { useStudentStore } from 'stores/student';
 
 defineOptions({

@@ -48,9 +48,11 @@ async function chooseFromSelect(
 test('a learner completes intake, commits to a case, and the reveal never changes', async ({
   page,
 }) => {
-  // --- M0 intake, entered through the real front door, not the dev bypass ---
+  // --- M1 route choice, then M0 intake, entered through the real front
+  // door, not the dev bypass ---
   await page.goto('/');
   await page.getByRole('link', { name: 'Start session' }).click();
+  await page.getByRole('button', { name: 'Continue as a student' }).click();
   await expect(page.getByText('Before you begin')).toBeVisible();
 
   // The placeholder disclaimer is part of the contract with the learner: it

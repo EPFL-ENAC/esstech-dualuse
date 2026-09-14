@@ -11,6 +11,20 @@ export default {
   sessionStart: 'Start session',
   studentOpenDev: 'Skip to student flow (dev)',
 
+  routeChoiceTitle: 'Choose how to begin',
+  routeChoiceIntro: 'Select the option that matches what you are here to do.',
+  routeChoiceResearcherLabel: 'Researcher — individual',
+  routeChoiceResearcherHint:
+    'Describe a technology, map its function and form, and see how your prediction compares to similar cases.',
+  routeChoiceStudentAction: 'Continue as a student',
+  routeChoiceResearcherAction: 'Continue as a researcher',
+  routeChoiceStarting: 'Starting...',
+
+  researcherIntakeTitle: 'Technology intake',
+  researcherIntakePlaceholderNotice:
+    'Temporary placeholder — this screen has not been built yet. It only confirms that your Researcher-route session was created correctly.',
+  researcherIntakeSessionIdLabel: 'Session ID',
+
   intakeTitle: 'Before you begin',
   intakeIntro: 'A few quick questions to set up your session.',
   intakeDiagnosticTitle: 'Three quick questions',

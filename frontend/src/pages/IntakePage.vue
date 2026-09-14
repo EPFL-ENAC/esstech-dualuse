@@ -141,7 +141,7 @@ import { useRouter } from 'vue-router';
 
 import { ApiError } from 'boot/api';
 import { getIntake, submitComprehension, submitDiagnostic } from 'src/api/intake';
-import { createSession } from 'src/api/student';
+import { createSession } from 'src/api/sessions';
 import {
   COMPREHENSION_CHECK,
   DIAGNOSTIC_ITEMS,
@@ -249,10 +249,6 @@ async function goToStudentFlow() {
     return;
   }
 
-  // TEMPORARY: M1 role/mode selection does not exist yet, so a finished intake
-  // drops straight into Student/Individual. When M1 lands, this redirect is
-  // what it replaces -- the session is already started, so M1 only has to
-  // choose a route and mode rather than create anything.
   await router.push('/student');
 }
 

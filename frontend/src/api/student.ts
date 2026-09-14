@@ -4,6 +4,9 @@
  * The types below mirror the backend's response models exactly. Nothing here
  * carries a learner identifier: the backend derives the learner from its own
  * development cookie, which `apiFetch` forwards.
+ *
+ * Session creation itself lives in api/sessions.ts, not here -- it is not
+ * Student-specific.
  */
 import { apiFetch } from 'boot/api';
 import type { ScaffoldingDepth } from 'src/api/intake';
@@ -33,17 +36,8 @@ export type Gate = (typeof GATES)[number];
 
 export type MatchResult = 'match' | 'partial_match' | 'mismatch';
 export type CaseType = 'harm' | 'counter_case';
-export type SessionRoute = 'student' | 'researcher';
-export type SessionMode = 'individual' | 'group' | 'lecture';
 
 export type FramingAnswers = Record<string, string>;
-
-export interface SessionCreated {
-  id: string;
-  route: SessionRoute;
-  mode: SessionMode;
-  started_at: string;
-}
 
 /** A case before commitment. Carries no answer-key fields by construction. */
 export interface CaseCandidate {
@@ -158,10 +152,6 @@ function postJson<T>(path: string, body: unknown): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-}
-
-export function createSession(): Promise<SessionCreated> {
-  return apiFetch<SessionCreated>('/sessions', { method: 'POST' });
 }
 
 export function listCandidateCases(): Promise<CaseCandidate[]> {
