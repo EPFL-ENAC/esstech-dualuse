@@ -118,6 +118,17 @@ class ContrastType(str, Enum):
     OPEN_AREA = "open_area"
 
 
+class InclusionReason(str, Enum):
+    """Why a case was included in a session's comparison set.
+
+    Derived server-side by build_comparison_set, never supplied by the
+    client -- the same reasoning as ContrastType above.
+    """
+
+    SHARED_FUNCTION = "shared_function"
+    WIDENED_BY_DOMAIN = "widened_by_domain"
+
+
 class Domain(str, Enum):
     """The technology domain a researcher's project belongs to.
 

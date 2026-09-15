@@ -9,7 +9,14 @@ from uuid import UUID
 import pytest
 
 from api.models import Case, ComparisonSet, ComparisonSetCase, CounterCaseLink
-from api.models.enums import CaseStatus, CaseType, Domain, Gate, Pattern
+from api.models.enums import (
+    CaseStatus,
+    CaseType,
+    Domain,
+    Gate,
+    InclusionReason,
+    Pattern,
+)
 
 
 async def _start_session(app_client, *, route: str | None = None) -> str:
@@ -61,7 +68,7 @@ async def _make_comparison_set(
             ComparisonSetCase(
                 comparison_set_id=comparison_set.id,
                 case_id=case_id,
-                inclusion_reason="shared function",
+                inclusion_reason=InclusionReason.SHARED_FUNCTION,
                 sequence_no=sequence_no,
             )
         )
@@ -82,6 +89,11 @@ RESEARCHER_ENDPOINTS = [
         {"gate": "G2", "posture_response": "a competitor"},
     ),
     ("post", "/sessions/{id}/researcher/comparison-set", None),
+    (
+        "get",
+        "/sessions/{id}/researcher/cases/00000000-0000-0000-0000-000000000000",
+        None,
+    ),
     (
         "post",
         "/sessions/{id}/researcher/prediction",

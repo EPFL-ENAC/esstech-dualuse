@@ -25,6 +25,7 @@ from api.models.enums import (
     Form,
     Function,
     Gate,
+    InclusionReason,
     MappingStatus,
     Pattern,
     SessionRoute,
@@ -36,10 +37,17 @@ from api.services.errors import ConflictError, NotFoundError, ValidationError
 MIN_COMPARISON_SET_SIZE = 5
 
 
+class ComparisonSetCaseSummary(BaseModel):
+    """One case in a comparison set, in relevance order."""
+
+    case_id: UUID
+    title: str
+
+
 class ComparisonSetResult(BaseModel):
     """The cases matched to a session's technology intake."""
 
-    case_ids: list[UUID]
+    cases: list[ComparisonSetCaseSummary]
     was_widened: bool
     case_count: int
 
@@ -441,6 +449,29 @@ async def set_gate_and_posture(
     return GateAndPostureResult(gate=gate, posture_response=posture_response)
 
 
+async def find_predictions(
+    session: AsyncSession, *, session_id: UUID
+) -> list[ResearcherPrediction]:
+    """A session's submitted prediction, ordered by rank.
+
+    Single source of truth for "does this session have a submitted
+    prediction" and "what is it, in order" -- submit_prediction's
+    existing-check, reveal_prediction_comparison, researcher_report.py,
+    and researcher_case_detail.py's spoiler gate all call this rather
+    than each re-deriving the same query.
+    """
+
+    return list(
+        (
+            await session.exec(
+                select(ResearcherPrediction)
+                .where(ResearcherPrediction.session_id == session_id)
+                .order_by(col(ResearcherPrediction.rank))
+            )
+        ).all()
+    )
+
+
 async def submit_prediction(
     session: AsyncSession,
     *,
@@ -467,14 +498,7 @@ async def submit_prediction(
 
     require_researcher_route(route)
 
-    existing = (
-        await session.exec(
-            select(ResearcherPrediction).where(
-                ResearcherPrediction.session_id == session_id
-            )
-        )
-    ).first()
-    if existing is not None:
+    if await find_predictions(session, session_id=session_id):
         raise ConflictError("Session already has a submitted prediction")
 
     if len(predictions) not in (2, 3):
@@ -526,15 +550,19 @@ async def _respond(
     # from the true relevance order (shared-function count descending, then
     # domain-widened, case id as the tie-break), so this is identical on
     # the first call and on the hundredth -- nothing to reconstruct.
-    case_ids = (
+    rows = (
         await session.exec(
-            select(ComparisonSetCase.case_id)
+            select(ComparisonSetCase.case_id, Case.title)
+            .join(Case, col(Case.id) == col(ComparisonSetCase.case_id))
             .where(ComparisonSetCase.comparison_set_id == comparison_set.id)
             .order_by(col(ComparisonSetCase.sequence_no))
         )
     ).all()
     return ComparisonSetResult(
-        case_ids=list(case_ids),
+        cases=[
+            ComparisonSetCaseSummary(case_id=case_id, title=title)
+            for case_id, title in rows
+        ],
         was_widened=comparison_set.was_widened,
         case_count=comparison_set.case_count,
     )
@@ -663,7 +691,7 @@ async def build_comparison_set(
             ComparisonSetCase(
                 comparison_set_id=comparison_set.id,
                 case_id=case_id,
-                inclusion_reason="shared function",
+                inclusion_reason=InclusionReason.SHARED_FUNCTION,
                 sequence_no=sequence_no,
             )
         )
@@ -672,7 +700,7 @@ async def build_comparison_set(
             ComparisonSetCase(
                 comparison_set_id=comparison_set.id,
                 case_id=case_id,
-                inclusion_reason="widened by domain",
+                inclusion_reason=InclusionReason.WIDENED_BY_DOMAIN,
                 sequence_no=sequence_no,
             )
         )
@@ -759,13 +787,7 @@ async def reveal_prediction_comparison(
     ).all()
     distribution = await get_pattern_distribution(session, case_ids=list(case_ids))
 
-    prediction_rows = (
-        await session.exec(
-            select(ResearcherPrediction)
-            .where(ResearcherPrediction.session_id == session_id)
-            .order_by(col(ResearcherPrediction.rank))
-        )
-    ).all()
+    prediction_rows = await find_predictions(session, session_id=session_id)
     if not prediction_rows:
         raise ConflictError("Session has no submitted prediction to reveal against")
 

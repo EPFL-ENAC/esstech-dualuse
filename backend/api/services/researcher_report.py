@@ -2,10 +2,10 @@ from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlmodel import col, select
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.models import ComparisonSetCase, ResearcherPrediction, TechnologyIntake
+from api.models import ComparisonSetCase, TechnologyIntake
 from api.models.enums import (
     ContrastType,
     Domain,
@@ -19,6 +19,7 @@ from api.services.researcher import (
     PredictionEntry,
     attempts_remaining,
     find_comparison_set,
+    find_predictions,
     find_set_contrast_entry,
     find_set_counter_case_link,
     get_pattern_distribution,
@@ -118,13 +119,7 @@ async def get_researcher_session_report(
     ).all()
     distribution = await get_pattern_distribution(session, case_ids=list(case_ids))
 
-    prediction_rows = (
-        await session.exec(
-            select(ResearcherPrediction)
-            .where(ResearcherPrediction.session_id == session_id)
-            .order_by(col(ResearcherPrediction.rank))
-        )
-    ).all()
+    prediction_rows = await find_predictions(session, session_id=session_id)
     predictions = [
         PredictionEntry(rank=row.rank, pattern=row.pattern) for row in prediction_rows
     ]

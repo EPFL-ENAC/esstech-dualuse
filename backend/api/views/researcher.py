@@ -30,6 +30,10 @@ from api.services.researcher import (
     submit_set_contrast,
     submit_tag,
 )
+from api.services.researcher_case_detail import (
+    ResearcherCaseDetail,
+    get_researcher_case_detail,
+)
 from api.services.researcher_report import (
     ResearcherSessionReport,
     get_researcher_session_report,
@@ -174,6 +178,37 @@ async def post_researcher_comparison_set(
     )
     return await build_comparison_set(
         session, session_id=session_id, route=owned_session.route
+    )
+
+
+@router.get(
+    "/sessions/{session_id}/researcher/cases/{case_id}",
+    response_model=ResearcherCaseDetail,
+    response_model_exclude_none=True,
+    summary="Get one case from the comparison set",
+    description=(
+        "Return one case from the session's comparison set, with why it "
+        "was included. main_path_pattern, main_path_gate, full_narrative, "
+        "and source_references are the answer key: absent until the "
+        "session has a submitted prediction. 404s if case_id is not among "
+        "this session's comparison-set cases."
+    ),
+    tags=["Researcher"],
+)
+async def get_researcher_case(
+    session_id: UUID,
+    case_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    learner_id: UUID = Depends(get_current_learner),
+) -> ResearcherCaseDetail:
+    owned_session = await get_owned_session(
+        session, session_id=session_id, learner_id=learner_id
+    )
+    return await get_researcher_case_detail(
+        session,
+        session_id=session_id,
+        case_id=case_id,
+        route=owned_session.route,
     )
 
 

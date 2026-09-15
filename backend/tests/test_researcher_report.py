@@ -16,7 +16,16 @@ from api.models import (
     ComparisonSetCase,
     CounterCaseLink,
 )
-from api.models.enums import CaseStatus, CaseType, Domain, Form, Function, Gate, Pattern
+from api.models.enums import (
+    CaseStatus,
+    CaseType,
+    Domain,
+    Form,
+    Function,
+    Gate,
+    InclusionReason,
+    Pattern,
+)
 
 
 async def _start_session(app_client) -> str:
@@ -133,7 +142,7 @@ async def _build_comparison_set(
             ComparisonSetCase(
                 comparison_set_id=comparison_set.id,
                 case_id=case.id,
-                inclusion_reason="shared function",
+                inclusion_reason=InclusionReason.SHARED_FUNCTION,
                 sequence_no=sequence_no,
             )
         )

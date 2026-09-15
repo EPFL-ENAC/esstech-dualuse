@@ -10,6 +10,7 @@ from api.models.enums import (
     Form,
     Function,
     Gate,
+    InclusionReason,
     MappingStatus,
     Pattern,
     sa_enum,
@@ -126,7 +127,9 @@ class ComparisonSetCase(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     comparison_set_id: UUID = Field(foreign_key="comparison_set.id", index=True)
     case_id: UUID = Field(foreign_key="case.id", index=True)
-    inclusion_reason: str
+    inclusion_reason: InclusionReason = Field(
+        sa_column=Column(sa_enum(InclusionReason), nullable=False)
+    )
     # This case's position in the relevance order computed at build time
     # (shared-function count descending, then domain-widened, case id as
     # the tie-break) -- 0-indexed, not 1-indexed like CaseEncounter/
