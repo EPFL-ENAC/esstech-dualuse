@@ -10,6 +10,7 @@ from api.models.enums import (
     CaseStatus,
     CaseType,
     ContrastType,
+    Domain,
     Gate,
     Pattern,
     SessionMode,
@@ -21,6 +22,7 @@ def _make_case() -> Case:
     return Case(
         title="Test Case",
         area="test-area",
+        domain=Domain.CYBER_TECHNOLOGIES,
         case_type=CaseType.HARM,
         status=CaseStatus.PUBLISHED,
         narrative_until_crossroads="Narrative shown before the crossroads.",
