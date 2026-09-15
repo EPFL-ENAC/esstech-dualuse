@@ -1,3 +1,4 @@
+from api.models.auth import AuthIdentity, LearningIdentity, User
 from api.models.case import (
     Case,
     CaseTaggedFunction,
@@ -19,6 +20,7 @@ from api.models.researcher import (
 from api.models.session import CaseEncounter, Commitment, Session
 
 __all__ = [
+    "AuthIdentity",
     "Case",
     "CaseEncounter",
     "CaseTaggedFunction",
@@ -31,9 +33,11 @@ __all__ = [
     "CounterCaseLink",
     "FeedbackRecord",
     "Item",
+    "LearningIdentity",
     "ResearcherPrediction",
     "Session",
     "SessionIntake",
     "SetContrastEntry",
     "TechnologyIntake",
+    "User",
 ]

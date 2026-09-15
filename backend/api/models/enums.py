@@ -129,6 +129,31 @@ class InclusionReason(str, Enum):
     WIDENED_BY_DOMAIN = "widened_by_domain"
 
 
+class UserStatus(str, Enum):
+    """A User's account status.
+
+    Just ACTIVE for now -- no deactivation/suspension flow exists
+    anywhere in this app yet, so more states would be speculative.
+    Extending this later (e.g. DISABLED, SUSPENDED) costs nothing on
+    existing rows: sa_enum() is VARCHAR+CHECK, not a native Postgres
+    enum, so widening the CHECK constraint is a new migration, never an
+    ALTER TYPE that touches data already there.
+    """
+
+    ACTIVE = "active"
+
+
+class AuthProvider(str, Enum):
+    """Which login provider an AuthIdentity came from.
+
+    Just GOOGLE for now. Adding EPFL_SSO/MAGIC_LINK later is the same
+    CHECK-constraint-widening migration as UserStatus above -- existing
+    AuthIdentity rows are never touched.
+    """
+
+    GOOGLE = "google"
+
+
 class Domain(str, Enum):
     """The technology domain a researcher's project belongs to.
 

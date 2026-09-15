@@ -5,8 +5,18 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 
-from api.models import Case, CaseEncounter, Commitment, ContrastEntry, Session
+from api.models import (
+    AuthIdentity,
+    Case,
+    CaseEncounter,
+    Commitment,
+    ContrastEntry,
+    LearningIdentity,
+    Session,
+    User,
+)
 from api.models.enums import (
+    AuthProvider,
     CaseStatus,
     CaseType,
     ContrastType,
@@ -15,6 +25,7 @@ from api.models.enums import (
     Pattern,
     SessionMode,
     SessionRoute,
+    UserStatus,
 )
 
 
@@ -197,3 +208,63 @@ async def test_contrast_entry_unique_per_encounter(db_session):
     )
     with pytest.raises(IntegrityError):
         await db_session.commit()
+
+
+def _make_user() -> User:
+    return User()
+
+
+async def test_auth_identity_unique_per_provider_and_subject(db_session):
+    user = _make_user()
+    db_session.add(user)
+    await db_session.flush()
+
+    db_session.add(
+        AuthIdentity(
+            user_id=user.id,
+            provider=AuthProvider.GOOGLE,
+            provider_subject="google-subject-1",
+            verified_email="learner@example.com",
+        )
+    )
+    await db_session.commit()
+
+    db_session.add(
+        AuthIdentity(
+            user_id=user.id,
+            provider=AuthProvider.GOOGLE,
+            provider_subject="google-subject-1",
+            verified_email="learner@example.com",
+        )
+    )
+    with pytest.raises(IntegrityError):
+        await db_session.commit()
+
+
+async def test_learning_identity_unique_per_user(db_session):
+    user = _make_user()
+    db_session.add(user)
+    await db_session.flush()
+
+    db_session.add(LearningIdentity(user_id=user.id))
+    await db_session.commit()
+
+    db_session.add(LearningIdentity(user_id=user.id))
+    with pytest.raises(IntegrityError):
+        await db_session.commit()
+
+
+async def test_user_status_stores_lowercase_value_not_member_name(db_session):
+    """Regression guard for sa_enum()'s values_callable, same reasoning as
+    test_enum_column_stores_lowercase_value_not_member_name above."""
+
+    user = _make_user()
+    db_session.add(user)
+    await db_session.commit()
+
+    result = await db_session.exec(text('SELECT status FROM "user"'))
+    raw_status = result.one()[0]
+
+    assert raw_status == "active"
+    assert raw_status == UserStatus.ACTIVE.value
+    assert raw_status != UserStatus.ACTIVE.name
