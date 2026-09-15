@@ -28,6 +28,12 @@ class Config(BaseSettings):
     OPENAI_API_KEY: str
     MODEL_NAME: str = "deepseek-ai/DeepSeek-V4-Flash-0731"
 
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    # Must exactly match what's registered in Google Cloud Console --
+    # defaults to the local-dev value already registered there.
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+
 
 @lru_cache()
 def get_config():

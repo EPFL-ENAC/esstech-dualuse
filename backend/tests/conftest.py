@@ -13,6 +13,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # settings singleton is built with a valid API key (which is required).
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
 os.environ.setdefault("OPENAI_API_KEY", "test-openai-key-for-testing-only")
+os.environ.setdefault("GOOGLE_CLIENT_ID", "test-google-client-id-for-testing-only")
+os.environ.setdefault(
+    "GOOGLE_CLIENT_SECRET", "test-google-client-secret-for-testing-only"
+)
 
 # Registers every model's table on SQLModel.metadata for the db_session fixture.
 import api.models  # noqa: E402, F401

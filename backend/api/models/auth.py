@@ -34,6 +34,13 @@ class AuthIdentity(SQLModel, table=True):
     OIDC "sub" claim) -- the real join key. verified_email is
     informational only, never used to look up or merge identities:
     addresses change and get reused, sub does not.
+
+    "verified" in the field name reflects Google's own claim naming
+    (userinfo's "email" field, alongside a separate "email_verified"
+    flag), not an independent check performed by this codebase: the
+    email is stored as Google reports it regardless of that flag, since
+    it is never an identity decision here, only informational display --
+    only provider_subject ever gates who a session becomes.
     """
 
     __tablename__ = "auth_identity"

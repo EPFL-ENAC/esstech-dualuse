@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from api.config import config
 from api.db import create_db_and_tables, dispose_engine
 from api.services.errors import ServiceError
+from api.views.auth import router as auth_router
 from api.views.cases import router as cases_router
 from api.views.dummy import router as dummy_router
 from api.views.encounters import router as encounters_router
@@ -85,6 +86,11 @@ async def handle_service_error(_: Request, exc: ServiceError) -> JSONResponse:
 app.include_router(
     dummy_router,
     tags=["Dummy"],
+)
+
+app.include_router(
+    auth_router,
+    tags=["Auth"],
 )
 
 app.include_router(

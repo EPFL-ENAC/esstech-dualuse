@@ -34,3 +34,11 @@ class ValidationError(ServiceError):
     """The request's content is invalid, independent of who sent it or when."""
 
     status_code = 422
+
+
+class UpstreamAuthError(ServiceError):
+    """An external identity provider (e.g. Google) failed, could not be
+    reached, or returned something this codebase could not use --
+    never the caller's fault, unlike ValidationError above."""
+
+    status_code = 502
