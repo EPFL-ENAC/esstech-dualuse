@@ -60,6 +60,17 @@
               <div v-if="researcherStore.comparisonSet.was_widened" class="text-body2 q-mt-xs">
                 {{ t('researcherComparisonSetWidenedNotice') }}
               </div>
+
+              <q-list separator>
+                <q-item
+                  v-for="c in researcherStore.comparisonSet.cases"
+                  :key="c.case_id"
+                  clickable
+                  :to="`/researcher/comparison-set/cases/${c.case_id}`"
+                >
+                  <q-item-section>{{ c.title }}</q-item-section>
+                </q-item>
+              </q-list>
             </q-card-section>
           </q-card>
 

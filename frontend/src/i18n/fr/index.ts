@@ -70,6 +70,10 @@ export default {
   researcherComparisonSetWidenedNotice:
     'Trop peu de cas partageaient la fonction de votre technologie ; cet ensemble a été élargi par domaine pour atteindre une taille de comparaison minimale.',
 
+  researcherInclusionReasonSharedFunction: 'Correspond à la fonction de votre technologie',
+  researcherInclusionReasonWidenedByDomain: 'Ajouté par élargissement à votre domaine',
+  researcherCaseDetailBack: "Retour à l'ensemble de comparaison",
+
   researcherPredictionTitle: 'Votre prédiction',
   researcherPredictionHint:
     'Classez les patterns que vous vous attendez à voir les plus actifs dans cet ensemble de comparaison.',

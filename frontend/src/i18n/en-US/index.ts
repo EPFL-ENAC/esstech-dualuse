@@ -66,6 +66,10 @@ export default {
   researcherComparisonSetWidenedNotice:
     "Not enough cases shared your technology's function, so this set was widened by domain to reach a minimum comparison size.",
 
+  researcherInclusionReasonSharedFunction: "Matched your technology's function",
+  researcherInclusionReasonWidenedByDomain: "Added by widening to your technology's domain",
+  researcherCaseDetailBack: 'Back to comparison set',
+
   researcherPredictionTitle: 'Your prediction',
   researcherPredictionHint:
     'Rank the patterns you expect to be most active across this comparison set.',

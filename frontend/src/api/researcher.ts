@@ -78,9 +78,17 @@ export interface GateAndPostureResult {
   posture_response: string;
 }
 
+export type InclusionReason = 'shared_function' | 'widened_by_domain';
+
+/** One case in a comparison set, in relevance order. */
+export interface ComparisonSetCaseSummary {
+  case_id: string;
+  title: string;
+}
+
 /** The cases matched to a session's technology intake. */
 export interface ComparisonSetResult {
-  case_ids: string[];
+  cases: ComparisonSetCaseSummary[];
   was_widened: boolean;
   case_count: number;
 }
@@ -159,6 +167,29 @@ export interface ResearcherSessionReport {
   learner_response?: string;
   gate_lever?: Gate;
   reflection_prompt_key?: string;
+}
+
+/**
+ * One case from a session's comparison set, with why it was included.
+ *
+ * Deliberately narrower pre-prediction: full_narrative, main_path_pattern,
+ * main_path_gate, and source_references are the answer key, absent (not
+ * null) until the session has a submitted prediction -- same
+ * exclude_none convention as ResearcherSessionReport.
+ */
+export interface ResearcherCaseDetail {
+  case_id: string;
+  title: string;
+  area: string;
+  narrative_until_crossroads: string;
+  domain: Domain;
+  functions: Function[];
+  forms: Form[];
+  inclusion_reason: InclusionReason;
+  full_narrative?: string;
+  main_path_pattern?: Pattern;
+  main_path_gate?: Gate;
+  source_references?: string[];
 }
 
 function postJson<T>(path: string, body: unknown): Promise<T> {
@@ -288,4 +319,16 @@ export function submitSetContrast(
  */
 export function getResearcherSessionReport(sessionId: string): Promise<ResearcherSessionReport> {
   return apiFetch<ResearcherSessionReport>(`/sessions/${sessionId}/researcher/report`);
+}
+
+/**
+ * Get one case from the session's comparison set, with why it was
+ * included. The answer key fields are absent until the session has a
+ * submitted prediction.
+ */
+export function getResearcherCaseDetail(
+  sessionId: string,
+  caseId: string,
+): Promise<ResearcherCaseDetail> {
+  return apiFetch<ResearcherCaseDetail>(`/sessions/${sessionId}/researcher/cases/${caseId}`);
 }
