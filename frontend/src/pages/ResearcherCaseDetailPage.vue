@@ -41,8 +41,7 @@
               <div class="text-subtitle1">{{ t('researcherTagTitle') }}</div>
 
               <div>
-                <div class="text-body2 text-grey-7">{{ t('researcherTagDomainLabel') }}</div>
-                <div class="text-subtitle1">{{ detail.domain }}</div>
+                <CaseDomainLabel :domain="detail.domain" />
               </div>
 
               <div v-if="detail.functions.length > 0">
@@ -114,6 +113,7 @@
 </template>
 
 <script setup lang="ts">
+import CaseDomainLabel from 'components/CaseDomainLabel.vue';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';

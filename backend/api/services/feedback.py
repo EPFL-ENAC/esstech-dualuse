@@ -7,7 +7,7 @@ from sqlmodel import col, desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.models import Case, Commitment, FeedbackRecord
-from api.models.enums import Gate, MatchResult, Pattern
+from api.models.enums import Domain, Gate, MatchResult, Pattern
 from api.services.encounters import get_owned_encounter
 from api.services.errors import ConflictError, NotFoundError
 from api.services.sessions import get_owned_session, require_student_route
@@ -18,6 +18,7 @@ class RevealedCase(BaseModel):
 
     id: UUID
     title: str
+    domain: Domain
     full_narrative: str
     main_path_pattern: Pattern
     main_path_gate: Gate
@@ -96,6 +97,7 @@ async def reveal_encounter(
     revealed_case = RevealedCase(
         id=case.id,
         title=case.title,
+        domain=case.domain,
         full_narrative=case.full_narrative,
         main_path_pattern=case.main_path_pattern,
         main_path_gate=case.main_path_gate,

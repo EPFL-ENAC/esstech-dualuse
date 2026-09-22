@@ -10,7 +10,7 @@ from uuid import uuid4
 import pytest
 
 from api.models import Case, CounterCaseLink
-from api.models.enums import CaseStatus, CaseType, Gate, MatchResult, Pattern
+from api.models.enums import CaseStatus, CaseType, Domain, Gate, MatchResult, Pattern
 
 
 def _make_case(
@@ -23,6 +23,7 @@ def _make_case(
     return Case(
         title=title,
         area="area-1",
+        domain=Domain.ARTIFICIAL_INTELLIGENCE,
         case_type=case_type,
         status=CaseStatus.PUBLISHED,
         narrative_until_crossroads="Narrative before the crossroads.",
@@ -39,6 +40,7 @@ async def _link_counter_case(
     counter_case = Case(
         title=f"{harm_case.title} (counter-case)",
         area=harm_case.area,
+        domain=harm_case.domain,
         case_type=CaseType.COUNTER_CASE,
         status=CaseStatus.PUBLISHED,
         narrative_until_crossroads="Counter-case narrative.",
@@ -150,6 +152,7 @@ async def test_report_single_open_area_encounter_per_match_result(
     assert body["has_completed_cases"] is True
     (entry,) = body["report"]["encounters"]
     assert entry["case_title"] == case.title
+    assert entry["domain"] == Domain.ARTIFICIAL_INTELLIGENCE.value
     assert entry["committed_pattern"] == pattern.value
     assert entry["committed_gate"] == gate.value
     assert entry["match_result"] == expected.value

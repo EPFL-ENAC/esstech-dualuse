@@ -30,11 +30,6 @@ export interface IntakeItem {
   options: readonly IntakeOption[];
 }
 
-export const PLACEHOLDER_NOTICE =
-  'Temporary placeholder, not a validated assessment. These questions and the ' +
-  'result they produce are scaffolding for development and carry no judgement ' +
-  'about your understanding.';
-
 /**
  * The three diagnostic items, in submission order.
  *
@@ -45,7 +40,7 @@ export const PLACEHOLDER_NOTICE =
 export const DIAGNOSTIC_ITEMS: readonly IntakeItem[] = [
   {
     id: 'd1',
-    prompt: 'Placeholder: what makes a piece of research "dual-use"?',
+    prompt: 'What makes a piece of research "dual-use"?',
     options: [
       { value: 'd1a', label: 'It is funded by more than one organisation.' },
       { value: 'd1b', label: 'It has been published in two different venues.' },
@@ -58,7 +53,7 @@ export const DIAGNOSTIC_ITEMS: readonly IntakeItem[] = [
   },
   {
     id: 'd2',
-    prompt: 'Placeholder: when is the earliest useful point to consider downstream misuse?',
+    prompt: 'When is the earliest useful point to consider downstream misuse?',
     options: [
       { value: 'd2a', label: 'While choosing the problem, before any work begins.' },
       { value: 'd2b', label: 'At peer review, once the method is fixed.' },
@@ -68,8 +63,7 @@ export const DIAGNOSTIC_ITEMS: readonly IntakeItem[] = [
   },
   {
     id: 'd3',
-    prompt:
-      'Placeholder: what does releasing a capability as an API rather than open weights mainly change?',
+    prompt: 'What does releasing a capability as an API rather than open weights mainly change?',
     options: [
       { value: 'd3a', label: 'The scientific validity of the result.' },
       { value: 'd3b', label: 'How much control the originator keeps over downstream use.' },
@@ -86,17 +80,16 @@ export const DIAGNOSTIC_ITEMS: readonly IntakeItem[] = [
 export const MICRO_PRIMER = {
   title: 'A short primer before you start',
   body:
-    'Placeholder primer. Dual-use research is work whose capability can serve ' +
+    'Dual-use research is work whose capability can serve ' +
     'both beneficial and harmful ends, often without any change to the work ' +
     'itself. The questions that follow ask you to notice where in a project ' +
-    'that possibility becomes visible, and who is positioned to act on it. ' +
-    'Real primer content is still to be written.',
+    'that possibility becomes visible, and who is positioned to act on it.',
 } as const;
 
 export const COMPREHENSION_CHECK: IntakeItem = {
   id: 'c1',
   prompt:
-    'Placeholder: a team releases an image-generation model as openly ' +
+    'A team releases an image-generation model as openly ' +
     'downloadable weights instead of providing controlled access through ' +
     'an API, and the model is later used to create non-consensual ' +
     'synthetic images. At which decision point could the risk most ' +
@@ -114,11 +107,18 @@ export const COMPREHENSION_CHECK: IntakeItem = {
  * and nothing here is resubmitted.
  */
 export const TARGETED_CORRECTION = {
-  title: 'Not quite',
+  title: 'Take another look',
   body:
-    'Placeholder correction. The release decision is usually the last point at ' +
+    'The release decision is usually the last point at ' +
     'which the originator still has meaningful control: once a capability is ' +
     'distributed, the choices left are other people’s. Reacting after ' +
-    'reported misuse is real work, but it is no longer prevention. Real ' +
-    'targeted-correction content is still to be written.',
+    'reported misuse is real work, but it is no longer prevention.',
 } as const;
+
+export const DIAGNOSTIC_CORRECT_ANSWERS: Readonly<Record<string, string>> = {
+  d1: 'd1c',
+  d2: 'd2a',
+  d3: 'd3b',
+};
+
+export const COMPREHENSION_CORRECT_ANSWER = 'c1b';

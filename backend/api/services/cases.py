@@ -5,7 +5,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.models import Case, CaseEncounter, Session
-from api.models.enums import CaseStatus, CaseType
+from api.models.enums import CaseStatus, CaseType, Domain
 
 CANDIDATE_LIMIT = 3
 
@@ -22,6 +22,7 @@ class CaseCandidate(BaseModel):
     id: UUID
     title: str
     area: str
+    domain: Domain
     case_type: CaseType
     narrative_until_crossroads: str
 
@@ -33,6 +34,7 @@ def to_candidate(case: Case) -> CaseCandidate:
         id=case.id,
         title=case.title,
         area=case.area,
+        domain=case.domain,
         case_type=case.case_type,
         narrative_until_crossroads=case.narrative_until_crossroads,
     )

@@ -6,11 +6,6 @@
         <div class="text-caption text-grey-7">{{ t('intakeIntro') }}</div>
       </div>
 
-      <q-banner class="bg-amber-1 text-amber-10" rounded dense>
-        <template #avatar><q-icon name="science" color="amber-8" /></template>
-        {{ PLACEHOLDER_NOTICE }}
-      </q-banner>
-
       <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
         <template #avatar><q-icon name="warning" color="negative" /></template>
         <div class="text-weight-medium">{{ t('errorTitle') }}</div>
@@ -38,15 +33,42 @@
               />
             </div>
           </div>
+
+          <q-banner
+            v-if="diagnosticChecked"
+            class="intake-hint q-mt-lg"
+            :class="diagnosticPassed ? 'intake-hint--success' : 'intake-hint--review'"
+            rounded
+          >
+            <template #avatar>
+              <q-icon :name="diagnosticPassed ? 'check_circle' : 'tips_and_updates'" />
+            </template>
+            <div class="text-weight-bold">{{ t('intakeAnswerHintTitle') }}</div>
+            <div class="q-mt-xs">{{ t('intakeAnswerHintIntro') }}</div>
+            <ul class="intake-hint__answers">
+              <li v-for="answer in correctAnswerHints" :key="answer">{{ answer }}</li>
+            </ul>
+            <div class="text-weight-medium">
+              {{ diagnosticPassed ? t('intakeAnswersCorrect') : t('intakeAnswersRetry') }}
+            </div>
+          </q-banner>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn
+            v-if="!diagnosticChecked"
             color="primary"
             unelevated
-            :label="submitting ? t('intakeSubmitting') : t('intakeSubmit')"
-            :loading="submitting"
+            :label="t('intakeCheckAnswers')"
             :disable="!diagnosticComplete"
+            @click="diagnosticChecked = true"
+          />
+          <q-btn
+            v-else
+            color="primary"
+            unelevated
+            :label="submitting ? t('intakeSubmitting') : t('intakeContinue')"
+            :loading="submitting"
             @click="sendDiagnostic"
           />
         </q-card-actions>
@@ -73,20 +95,29 @@
       <q-card v-else-if="store.step === 'comprehension'" flat bordered>
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ t('intakeComprehensionTitle') }}</div>
-          <div class="text-caption text-grey-7 q-mb-md">{{ t('intakeOneAttempt') }}</div>
           <div class="text-body1 q-mb-sm">{{ COMPREHENSION_CHECK.prompt }}</div>
           <q-option-group
             v-model="comprehensionChoice"
             :options="toOptions(COMPREHENSION_CHECK)"
             type="radio"
           />
+
+          <q-banner
+            v-if="comprehensionChecked && !comprehensionPassed"
+            class="intake-hint intake-hint--review q-mt-lg"
+            rounded
+          >
+            <template #avatar><q-icon name="tips_and_updates" /></template>
+            <div class="text-weight-bold">{{ TARGETED_CORRECTION.title }}</div>
+            <div class="q-mt-xs">{{ TARGETED_CORRECTION.body }}</div>
+          </q-banner>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn
             color="primary"
             unelevated
-            :label="submitting ? t('intakeSubmitting') : t('intakeSubmit')"
+            :label="submitting ? t('intakeSubmitting') : t('intakeCheckAnswers')"
             :loading="submitting"
             :disable="comprehensionChoice === null"
             @click="sendComprehension"
@@ -94,7 +125,7 @@
         </q-card-actions>
       </q-card>
 
-      <!-- Step 4: static correction after a wrong answer. Nothing resubmits. -->
+      <!-- Recovery for sessions completed under the previous one-attempt flow. -->
       <q-card v-else-if="store.step === 'correction'" flat bordered>
         <q-card-section class="bg-orange-1">
           <div class="text-subtitle1">{{ TARGETED_CORRECTION.title }}</div>
@@ -144,9 +175,10 @@ import { getIntake, submitComprehension, submitDiagnostic } from 'src/api/intake
 import { createSession } from 'src/api/sessions';
 import {
   COMPREHENSION_CHECK,
+  COMPREHENSION_CORRECT_ANSWER,
+  DIAGNOSTIC_CORRECT_ANSWERS,
   DIAGNOSTIC_ITEMS,
   MICRO_PRIMER,
-  PLACEHOLDER_NOTICE,
   TARGETED_CORRECTION,
 } from 'src/content/intake';
 import type { IntakeItem } from 'src/content/intake';
@@ -168,11 +200,30 @@ const loading = ref(false);
 const submitting = ref(false);
 const starting = ref(false);
 const errorMessage = ref('');
+const diagnosticChecked = ref(false);
+const comprehensionChecked = ref(false);
 
 const comprehensionChoice = ref<string | null>(store.comprehensionAnswer);
 
 const diagnosticComplete = computed(() =>
   DIAGNOSTIC_ITEMS.every((item) => store.diagnosticAnswers[item.id] !== undefined),
+);
+
+const diagnosticPassed = computed(() =>
+  DIAGNOSTIC_ITEMS.every(
+    (item) => store.diagnosticAnswers[item.id] === DIAGNOSTIC_CORRECT_ANSWERS[item.id],
+  ),
+);
+
+const correctAnswerHints = computed(() =>
+  DIAGNOSTIC_ITEMS.map((item) => {
+    const correctValue = DIAGNOSTIC_CORRECT_ANSWERS[item.id];
+    return item.options.find((option) => option.value === correctValue)?.label ?? '';
+  }),
+);
+
+const comprehensionPassed = computed(
+  () => comprehensionChoice.value === COMPREHENSION_CORRECT_ANSWER,
 );
 
 function toOptions(item: IntakeItem) {
@@ -196,7 +247,6 @@ async function ensureSession(): Promise<string | null> {
   try {
     const created = await createSession();
     studentStore.setSession(created);
-    store.reset();
     return created.id;
   } catch (error) {
     errorMessage.value = describe(error);
@@ -229,6 +279,8 @@ async function sendComprehension() {
     return;
   }
 
+  comprehensionChecked.value = true;
+
   submitting.value = true;
   errorMessage.value = '';
   try {
@@ -256,6 +308,8 @@ function startOver() {
   store.reset();
   studentStore.reset();
   comprehensionChoice.value = null;
+  diagnosticChecked.value = false;
+  comprehensionChecked.value = false;
   errorMessage.value = '';
 }
 
@@ -286,11 +340,29 @@ onMounted(async () => {
 
 <style scoped>
 .intake-page {
-  max-width: 760px;
   margin: 0 auto;
 }
-
 .intake-page__prose {
   white-space: pre-wrap;
+}
+.intake-hint {
+  border: 1px solid transparent;
+}
+.intake-hint--review {
+  color: #75521d;
+  background: #fff4d6;
+  border-color: rgba(190, 132, 34, 0.24);
+}
+.intake-hint--success {
+  color: #174f3c;
+  background: #e5f6ed;
+  border-color: rgba(23, 79, 60, 0.2);
+}
+.intake-hint__answers {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+.intake-hint__answers li + li {
+  margin-top: 6px;
 }
 </style>

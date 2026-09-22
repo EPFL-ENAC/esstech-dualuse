@@ -1,49 +1,46 @@
 <template>
-  <q-card flat bordered class="contrast-panel">
-    <template v-if="counterCase.has_counter_case && counterCase.counter_case">
-      <q-card-section>
-        <div class="text-subtitle2 q-mb-sm">{{ t('contrastTwinTitle') }}</div>
-        <q-chip outline color="primary">{{ gateLever?.label }}</q-chip>
-        <div class="text-body1 q-mt-sm">
-          {{ counterCase.counter_case.responsibility_posture_contrast }}
-        </div>
-      </q-card-section>
+  <q-card
+    v-if="counterCase.has_counter_case && counterCase.counter_case"
+    flat
+    bordered
+    class="contrast-panel"
+  >
+    <q-card-section>
+      <div class="text-subtitle2 q-mb-sm">{{ t('contrastTwinTitle') }}</div>
+      <q-chip outline color="primary">{{ gateLever?.label }}</q-chip>
+      <div class="text-body1 q-mt-sm">
+        {{ counterCase.counter_case.responsibility_posture_contrast }}
+      </div>
+    </q-card-section>
 
-      <q-separator />
+    <q-separator />
 
-      <q-card-section>
-        <div class="text-subtitle2 q-mb-sm">{{ t(questionKey) }}</div>
-        <q-input
-          v-model="response"
-          :label="t('contrastResponseLabel')"
-          :disable="contrast !== null"
-          outlined
-          autogrow
-          type="textarea"
-        />
-      </q-card-section>
+    <q-card-section>
+      <div class="text-subtitle2 q-mb-sm">{{ t(questionKey) }}</div>
+      <q-input
+        v-model="response"
+        :label="t('contrastResponseLabel')"
+        :disable="contrast !== null"
+        outlined
+        autogrow
+        type="textarea"
+      />
+    </q-card-section>
 
-      <q-card-actions align="right">
-        <div v-if="contrast" class="text-caption text-positive q-mr-sm">
-          {{ t('contrastSaved') }}
-        </div>
-        <q-btn
-          v-else
-          color="primary"
-          unelevated
-          :label="submitting ? t('contrastSubmitting') : t('contrastSubmit')"
-          :loading="submitting"
-          :disable="response.trim() === ''"
-          @click="emit('submit', response.trim())"
-        />
-      </q-card-actions>
-    </template>
-
-    <template v-else>
-      <q-card-section>
-        <div class="text-body1">{{ t('contrastOpenAreaMessage') }}</div>
-      </q-card-section>
-    </template>
+    <q-card-actions align="right">
+      <div v-if="contrast" class="text-caption text-positive q-mr-sm">
+        {{ t('contrastSaved') }}
+      </div>
+      <q-btn
+        v-else
+        color="primary"
+        unelevated
+        :label="submitting ? t('contrastSubmitting') : t('contrastSubmit')"
+        :loading="submitting"
+        :disable="response.trim() === ''"
+        @click="emit('submit', response.trim())"
+      />
+    </q-card-actions>
   </q-card>
 </template>
 

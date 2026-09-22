@@ -121,6 +121,7 @@
           </q-card-section>
 
           <q-card-section>
+            <CaseDomainLabel :domain="entry.domain" />
             <div class="text-caption text-grey-7">{{ t('revealYourReading') }}</div>
             <div class="text-subtitle1">
               {{ PATTERN_DISPLAY_BY_ID[entry.committed_pattern].label }}
@@ -136,14 +137,11 @@
 
           <q-separator />
 
-          <q-card-section>
-            <template v-if="entry.contrast_type === 'twin_counter_case'">
-              <div class="text-subtitle2 q-mb-sm">{{ t('contrastTwinTitle') }}</div>
-              <q-chip v-if="entry.gate_lever" outline color="primary">
-                {{ GATE_DISPLAY_BY_ID[entry.gate_lever].label }}
-              </q-chip>
-            </template>
-            <div v-else class="text-body2">{{ t('contrastOpenAreaMessage') }}</div>
+          <q-card-section v-if="entry.contrast_type === 'twin_counter_case'">
+            <div class="text-subtitle2 q-mb-sm">{{ t('contrastTwinTitle') }}</div>
+            <q-chip v-if="entry.gate_lever" outline color="primary">
+              {{ GATE_DISPLAY_BY_ID[entry.gate_lever].label }}
+            </q-chip>
           </q-card-section>
         </q-card>
       </template>
@@ -167,11 +165,13 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { ApiError } from 'boot/api';
+import CaseDomainLabel from 'components/CaseDomainLabel.vue';
 import type { ScaffoldingDepth } from 'src/api/intake';
 import { getSessionReport } from 'src/api/student';
 import type { CompletedEncounterReport, MatchResult, SessionReport } from 'src/api/student';
 import { GATE_DISPLAY_BY_ID, PATTERN_DISPLAY_BY_ID } from 'src/content/patterns';
 import { useStudentStore } from 'stores/student';
+import { useIntakeStore } from 'stores/intake';
 
 defineOptions({
   name: 'StudentCompletePage',
@@ -180,6 +180,7 @@ defineOptions({
 const { t } = useI18n();
 const router = useRouter();
 const store = useStudentStore();
+const intakeStore = useIntakeStore();
 
 const sessionReport = ref<SessionReport | null>(null);
 const loading = ref(false);
@@ -243,7 +244,8 @@ async function loadReport() {
 
 function startOver() {
   store.reset();
-  void router.push('/student');
+  intakeStore.reset();
+  void router.push('/intake');
 }
 
 onMounted(() => {
@@ -253,7 +255,6 @@ onMounted(() => {
 
 <style scoped>
 .complete-page {
-  max-width: 760px;
   margin: 0 auto;
 }
 </style>

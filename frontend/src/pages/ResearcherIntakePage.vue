@@ -345,7 +345,16 @@ onMounted(async () => {
   } catch (error) {
     // A 404 is the ordinary "no intake yet" case, not surfaced -- the same
     // treatment IntakePage.vue gives getIntake's 404.
-    if (!(error instanceof ApiError) || error.status !== 404) {
+    if (error instanceof ApiError && error.status === 404) {
+      // A persisted intake step may belong to an older session. The current
+      // session is authoritative: with no server-side intake, restart from
+      // the description instead of rendering tagging and causing a 409.
+      intakeStore.reset();
+      descriptionInput.value = '';
+      domainInput.value = null;
+      functionsInput.value = [];
+      formsInput.value = [];
+    } else {
       errorMessage.value = describe(error);
     }
   } finally {

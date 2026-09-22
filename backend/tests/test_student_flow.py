@@ -11,7 +11,7 @@ import pytest
 from sqlmodel import select
 
 from api.models import Case, Commitment, FeedbackRecord
-from api.models.enums import CaseStatus, CaseType, Gate, MatchResult, Pattern
+from api.models.enums import CaseStatus, CaseType, Domain, Gate, MatchResult, Pattern
 from api.services.feedback import compute_match_result
 
 
@@ -26,6 +26,7 @@ def _make_case(
     return Case(
         title=title,
         area="area-1",
+        domain=Domain.ARTIFICIAL_INTELLIGENCE,
         case_type=case_type,
         status=status,
         narrative_until_crossroads="Narrative before the crossroads.",
@@ -125,6 +126,7 @@ async def test_reveal_returns_match_result(
     body = response.json()
     assert body["match_result"] == expected.value
     assert body["case"]["full_narrative"] == "Full narrative."
+    assert body["case"]["domain"] == Domain.ARTIFICIAL_INTELLIGENCE.value
     assert body["case"]["main_path_pattern"] == Pattern.A.value
     assert body["commitment"] == {"pattern": pattern.value, "gate": gate.value}
 
@@ -287,6 +289,8 @@ async def test_pre_reveal_responses_hide_the_answer_key(app_client, db_session):
 
     assert candidates.status_code == 200
     assert encounter.status_code == 201
+    assert candidates.json()[0]["domain"] == Domain.ARTIFICIAL_INTELLIGENCE.value
+    assert encounter.json()["case"]["domain"] == Domain.ARTIFICIAL_INTELLIGENCE.value
     for field in spoilers:
         assert field not in candidates.json()[0]
         assert field not in encounter.json()["case"]

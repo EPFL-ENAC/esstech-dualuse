@@ -52,6 +52,7 @@
           <q-card v-for="candidate in candidates" :key="candidate.id" flat bordered>
             <q-card-section>
               <div class="text-subtitle1">{{ candidate.title }}</div>
+              <CaseDomainLabel :domain="candidate.domain" />
               <div class="text-caption text-grey-7">{{ candidate.area }}</div>
               <div class="text-body2 q-mt-sm student-page__narrative">
                 {{ candidate.narrative_until_crossroads }}
@@ -100,9 +101,11 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { ApiError } from 'boot/api';
+import CaseDomainLabel from 'components/CaseDomainLabel.vue';
 import { createEncounter, listCandidateCases } from 'src/api/student';
 import type { CaseCandidate } from 'src/api/student';
 import { createSession } from 'src/api/sessions';
+import { useIntakeStore } from 'stores/intake';
 import { useStudentStore } from 'stores/student';
 
 defineOptions({
@@ -112,6 +115,7 @@ defineOptions({
 const { t } = useI18n();
 const router = useRouter();
 const store = useStudentStore();
+const intakeStore = useIntakeStore();
 
 const candidates = ref<CaseCandidate[]>([]);
 const loadingCases = ref(false);
@@ -195,10 +199,12 @@ async function selectCase(candidate: CaseCandidate) {
   }
 }
 
-function startOver() {
+async function startOver() {
   store.reset();
+  intakeStore.reset();
   candidates.value = [];
   errorMessage.value = '';
+  await router.push('/intake');
 }
 
 function retry() {
@@ -217,7 +223,6 @@ onMounted(() => {
 
 <style scoped>
 .student-page {
-  max-width: 760px;
   margin: 0 auto;
 }
 

@@ -10,7 +10,7 @@ import pytest
 from sqlmodel import select
 
 from api.models import Case, ContrastEntry, CounterCaseLink
-from api.models.enums import CaseStatus, CaseType, Gate, Pattern
+from api.models.enums import CaseStatus, CaseType, Domain, Gate, Pattern
 
 
 def _make_case(
@@ -21,6 +21,7 @@ def _make_case(
     return Case(
         title=title,
         area="area-1",
+        domain=Domain.ARTIFICIAL_INTELLIGENCE,
         case_type=case_type,
         status=CaseStatus.PUBLISHED,
         narrative_until_crossroads="Narrative before the crossroads.",
@@ -55,6 +56,7 @@ async def _link_counter_case(db_session, *, harm_case: Case) -> CounterCaseLink:
     counter_case = Case(
         title="Counter Case",
         area=harm_case.area,
+        domain=harm_case.domain,
         case_type=CaseType.COUNTER_CASE,
         status=CaseStatus.PUBLISHED,
         narrative_until_crossroads="Counter-case narrative.",

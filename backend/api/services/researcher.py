@@ -42,6 +42,7 @@ class ComparisonSetCaseSummary(BaseModel):
 
     case_id: UUID
     title: str
+    domain: Domain
 
 
 class ComparisonSetResult(BaseModel):
@@ -273,7 +274,15 @@ async def create_technology_intake(
         )
     ).first()
     if existing is not None:
-        raise ConflictError("Session already has a technology intake")
+        # Compute-or-fetch semantics make a retried POST safe when the first
+        # response was lost. The stored description remains authoritative.
+        return TechnologyIntakeCreated(
+            id=existing.id,
+            session_id=existing.session_id,
+            raw_description=existing.raw_description,
+            mapping_status=existing.mapping_status,
+            created_at=existing.created_at,
+        )
 
     record = TechnologyIntake(
         session_id=session_id,
@@ -552,7 +561,7 @@ async def _respond(
     # the first call and on the hundredth -- nothing to reconstruct.
     rows = (
         await session.exec(
-            select(ComparisonSetCase.case_id, Case.title)
+            select(ComparisonSetCase, Case)
             .join(Case, col(Case.id) == col(ComparisonSetCase.case_id))
             .where(ComparisonSetCase.comparison_set_id == comparison_set.id)
             .order_by(col(ComparisonSetCase.sequence_no))
@@ -560,8 +569,10 @@ async def _respond(
     ).all()
     return ComparisonSetResult(
         cases=[
-            ComparisonSetCaseSummary(case_id=case_id, title=title)
-            for case_id, title in rows
+            ComparisonSetCaseSummary(
+                case_id=membership.case_id, title=case.title, domain=case.domain
+            )
+            for membership, case in rows
         ],
         was_widened=comparison_set.was_widened,
         case_count=comparison_set.case_count,

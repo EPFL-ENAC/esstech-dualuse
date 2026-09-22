@@ -68,7 +68,10 @@
                   clickable
                   :to="`/researcher/comparison-set/cases/${c.case_id}`"
                 >
-                  <q-item-section>{{ c.title }}</q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ c.title }}</q-item-label>
+                    <CaseDomainLabel :domain="c.domain" />
+                  </q-item-section>
                 </q-item>
               </q-list>
             </q-card-section>
@@ -197,7 +200,7 @@
 
           <!-- Step 4: contrast. -->
           <ContrastPanel
-            v-if="researcherStore.counterCase"
+            v-if="researcherStore.counterCase?.has_counter_case"
             :counter-case="researcherStore.counterCase"
             :contrast="researcherStore.contrast"
             :submitting="submittingContrast"
@@ -220,6 +223,7 @@
 </template>
 
 <script setup lang="ts">
+import CaseDomainLabel from 'components/CaseDomainLabel.vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

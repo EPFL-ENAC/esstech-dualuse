@@ -50,9 +50,8 @@ router = APIRouter()
     summary="Start the technology intake",
     description=(
         "Start this session's technology intake from a free-text "
-        "description. One-shot: a second call for a session that already "
-        "has an intake is rejected. The mapping loop happens in /tag, not "
-        "here."
+        "description. Repeating the call returns the stored intake without "
+        "overwriting it. The mapping loop happens in /tag, not here."
     ),
     tags=["Researcher"],
 )

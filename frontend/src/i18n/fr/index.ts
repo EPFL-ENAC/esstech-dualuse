@@ -1,19 +1,71 @@
 export default {
-  appTitle: 'esstech-dualuse',
+  appTitle: 'Dark Mirror',
 
   goHome: "Retour à l'accueil",
   notFoundMessage: 'Désolé, il n’y a rien ici...',
 
-  welcome: 'Bienvenue sur le boilerplate',
-  welcomeHint: 'Ceci est la page d’accueil factice. Remplacez-la par votre contenu réel.',
+  welcome: 'Laboratoire de réflexion dual-use',
+  welcomeHint: 'Un espace guidé pour des décisions de recherche responsables.',
   fetchMessage: 'Récupérer le message du backend',
+  footerTagline:
+    'Un espace de réflexion pour voir où la recherche pourrait mener, tant qu’il est encore temps de choisir autrement.',
+  footerPurpose: 'Conçu pour la recherche et l’éducation responsables',
+
+  landingKicker: 'Un outil de réflexion pour la science et la technologie',
+  landingTitleLead: "Voir l'autre voie,",
+  landingTitleAccent: "avant qu'elle ne soit empruntée.",
+  landingLead:
+    "Explorez comment la recherche peut dépasser son intention initiale, et repérez où la responsabilité peut encore changer l'issue.",
+  landingTry: "Essayer l'outil",
+  landingTryShort: 'Commencer une réflexion',
+  landingDiscover: 'Découvrir le parcours',
+  landingMetaTime: '10–15 minutes',
+  landingMetaPrivacy: 'Réflexion privée',
+  landingMetaNoScore: 'Sans score ni jugement',
+  landingVisualQuestion: 'Où cette recherche pourrait-elle mener ?',
+  landingVisualHint: 'Arrêtez-vous au point de décision. Lisez les signaux. Choisissez une voie.',
+  landingVideoLabel: 'Perspectives dual-use',
+  landingPathsKicker: 'Adapté à votre perspective',
+  landingPathsTitle: 'Deux voies vers la même question.',
+  landingPathsBody:
+    'Commencez par un cas réel ou par une technologie que vous connaissez. Les deux parcours rendent la responsabilité visible avant que l’issue ne soit figée.',
+  landingStudentEyebrow: 'Pour les étudiants',
+  landingStudentTitle: 'Réfléchir à partir d’un cas réel',
+  landingStudentBody:
+    'Lisez la situation, engagez votre interprétation et comparez-la à ce qui s’est produit ensuite.',
+  landingStudentFeatureOne: 'Basé sur des cas',
+  landingStudentFeatureTwo: 'Révélation guidée',
+  landingResearcherEyebrow: 'Pour les praticiens',
+  landingResearcherTitle: 'Cartographier votre technologie',
+  landingResearcherBody:
+    'Décrivez votre travail, construisez un ensemble de comparaison et confrontez vos attentes à des cas documentés.',
+  landingResearcherFeatureOne: 'Basé sur une technologie',
+  landingResearcherFeatureTwo: 'Ensemble comparatif',
+  landingExploreRoute: 'Découvrir ce parcours',
+  landingHowKicker: "L'expérience",
+  landingHowTitle: 'Une pause pour mieux décider.',
+  landingHowBody:
+    "Des cas réels vous aident à repérer les patterns récurrents, situer le gate de décision et réfléchir à qui porte la responsabilité, tant qu'il est encore possible d'agir.",
+  landingStepOneTitle: 'Entrez dans la situation',
+  landingStepOneBody:
+    "Parcourez un cas de recherche documenté jusqu'à un vrai point de décision, sans en connaître l'issue.",
+  landingStepTwoTitle: 'Engagez votre lecture',
+  landingStepTwoBody:
+    'Identifiez le pattern et le gate qui vous semblent décisifs. Votre interprétation précède toujours la révélation.',
+  landingStepThreeTitle: 'Réfléchissez par contraste',
+  landingStepThreeBody:
+    "Comparez votre lecture à ce qui s'est produit et examinez un contre-cas ou une limite explicite du corpus.",
+  landingStatement:
+    "Ce n'est pas un test pour décider si la recherche est bonne ou mauvaise. C'est une façon de voir ce qui pourrait suivre, assez tôt pour réagir.",
+  landingStatementLabel: 'Pour étudiants & chercheurs',
 
   sessionStart: 'Démarrer une session',
   studentOpenDev: 'Accès direct au parcours étudiant (dev)',
 
   routeChoiceTitle: 'Choisissez votre parcours',
+  routeChoiceKicker: 'Votre perspective',
   routeChoiceIntro: 'Sélectionnez l’option qui correspond à ce que vous souhaitez faire.',
-  routeChoiceResearcherLabel: 'Parcours chercheur — individuel',
+  routeChoiceResearcherLabel: 'Chercheur',
   routeChoiceResearcherHint:
     'Décrivez une technologie, précisez sa fonction et sa forme, puis comparez votre prédiction à des cas similaires.',
   routeChoiceStudentAction: 'Continuer en tant qu’étudiant',
@@ -34,6 +86,7 @@ export default {
   researcherTagIntro:
     'Le domaine, la fonction et la forme situent ensemble votre technologie dans le corpus de cas.',
   researcherTagDomainLabel: 'Domaine',
+  caseTechnologyDomainLabel: 'Domaine technologique',
   researcherTagFunctionsLabel: 'Fonction(s)',
   researcherTagFormsLabel: 'Forme(s)',
   researcherTagSubmit: 'Envoyer',
@@ -123,6 +176,12 @@ export default {
   intakeComprehensionTitle: 'Une dernière vérification',
   intakeOneAttempt: 'Une seule tentative — la question ne sera pas reposée.',
   intakeSubmit: 'Continuer',
+  intakeCheckAnswers: 'Vérifier les réponses',
+  intakeAnswerHintTitle: 'Un indice avant de continuer',
+  intakeAnswerHintIntro: 'Repérez ces trois idées dans les questions ci-dessus :',
+  intakeAnswersCorrect: 'Les trois réponses sont correctes. Vous pouvez continuer.',
+  intakeAnswersRetry:
+    'Vous pouvez modifier vos choix à l’aide de l’indice, ou continuer lorsque vous êtes prêt.',
   intakeSubmitting: 'Enregistrement...',
   intakePrimerContinue: 'Compris, continuer',
   intakeContinue: 'Continuer',
@@ -130,7 +189,7 @@ export default {
   intakeDoneBody: 'Votre session est prête. Choisissez maintenant un cas à traiter.',
   intakeGoToCases: 'Choisir un cas',
 
-  studentTitle: 'Parcours étudiant — individuel',
+  studentTitle: 'Étudiant',
   studentIntro: 'Traitez jusqu’à trois cas, une décision à la fois.',
   studentStart: 'Démarrer une session',
   studentStarting: 'Démarrage de la session...',
@@ -183,8 +242,6 @@ export default {
   contrastSubmit: 'Envoyer',
   contrastSubmitting: 'Enregistrement...',
   contrastSaved: 'Réflexion enregistrée.',
-  contrastOpenAreaMessage:
-    "Ce cas de figure n'est pas encore couvert par un cas-jumeau dans le corpus actuel. L'outil n'invente pas de solution là où la base de preuves n'en a pas.",
 
   anotherCaseProgress: 'Vous avez travaillé {current} cas sur {total}.',
   anotherCaseYes: 'Oui, un autre cas',

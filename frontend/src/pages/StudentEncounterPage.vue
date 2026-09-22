@@ -12,6 +12,7 @@
         <div class="row items-center justify-between">
           <div>
             <div class="text-h5">{{ encounter.case.title }}</div>
+            <CaseDomainLabel :domain="encounter.case.domain" />
             <div class="text-caption text-grey-7">{{ encounter.case.area }}</div>
           </div>
           <q-chip outline color="primary">
@@ -147,7 +148,7 @@
         </div>
 
         <ContrastPanel
-          v-if="counterCase"
+          v-if="counterCase?.has_counter_case"
           :counter-case="counterCase"
           :contrast="contrast"
           :submitting="submittingContrast"
@@ -179,6 +180,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import ContrastPanel from 'components/ContrastPanel.vue';
+import CaseDomainLabel from 'components/CaseDomainLabel.vue';
 import RevealPanel from 'components/RevealPanel.vue';
 import { ApiError } from 'boot/api';
 import { createCommitment, getCounterCase, revealEncounter, submitContrast } from 'src/api/student';
@@ -186,6 +188,7 @@ import type { FramingAnswers, Gate, Pattern } from 'src/api/student';
 import { FRAMING_QUESTIONS } from 'src/content/framing';
 import { GATE_OPTIONS, PATTERN_OPTIONS } from 'src/content/patterns';
 import { useStudentStore } from 'stores/student';
+import { useIntakeStore } from 'stores/intake';
 
 defineOptions({
   name: 'StudentEncounterPage',
@@ -194,6 +197,7 @@ defineOptions({
 const { t } = useI18n();
 const router = useRouter();
 const store = useStudentStore();
+const intakeStore = useIntakeStore();
 
 const encounter = computed(() => store.encounter);
 const reveal = computed(() => store.reveal);
@@ -348,13 +352,13 @@ async function goToDebrief() {
 
 async function startOver() {
   store.reset();
-  await router.push('/student');
+  intakeStore.reset();
+  await router.push('/intake');
 }
 </script>
 
 <style scoped>
 .encounter-page {
-  max-width: 760px;
   margin: 0 auto;
 }
 

@@ -1,19 +1,71 @@
 export default {
-  appTitle: 'esstech-dualuse',
+  appTitle: 'Dark Mirror',
 
   goHome: 'Go home',
   notFoundMessage: 'Sorry, nothing here...',
 
-  welcome: 'Welcome to the boilerplate',
-  welcomeHint: 'This is the dummy home page. Replace it with your real content.',
+  welcome: 'Dual-Use Reflection Lab',
+  welcomeHint: 'A guided space for responsible research decisions.',
   fetchMessage: 'Fetch backend message',
+  footerTagline:
+    'A reflective space for seeing where research could lead, while there is still time to choose differently.',
+  footerPurpose: 'Built for responsible research and education',
+
+  landingKicker: 'A reflection tool for science and technology',
+  landingTitleLead: 'See the other path,',
+  landingTitleAccent: 'before it is taken.',
+  landingLead:
+    'Explore how research can travel beyond its intended purpose, and identify where responsibility can still change the outcome.',
+  landingTry: 'Try the tool',
+  landingTryShort: 'Begin a reflection',
+  landingDiscover: 'See how it works',
+  landingMetaTime: '10–15 minutes',
+  landingMetaPrivacy: 'Private reflection',
+  landingMetaNoScore: 'No scores or judgment',
+  landingVisualQuestion: 'Where could this research lead?',
+  landingVisualHint: 'Pause at the decision point. Read the signals. Choose a path.',
+  landingVideoLabel: 'Dual-use perspectives',
+  landingPathsKicker: 'Made for your perspective',
+  landingPathsTitle: 'Two ways into the same question.',
+  landingPathsBody:
+    'Begin with a real case or with a technology you know. Both routes help you make responsibility visible before the outcome is fixed.',
+  landingStudentEyebrow: 'For learners',
+  landingStudentTitle: 'Think through a real case',
+  landingStudentBody:
+    'Read the situation, commit to your interpretation and compare it with what happened next.',
+  landingStudentFeatureOne: 'Case-based',
+  landingStudentFeatureTwo: 'Guided reveal',
+  landingResearcherEyebrow: 'For practitioners',
+  landingResearcherTitle: 'Map your own technology',
+  landingResearcherBody:
+    'Describe your work, build a comparison set and test your expectations against curated cases.',
+  landingResearcherFeatureOne: 'Technology-based',
+  landingResearcherFeatureTwo: 'Comparison set',
+  landingExploreRoute: 'Explore this route',
+  landingHowKicker: 'The experience',
+  landingHowTitle: 'A pause for better decisions.',
+  landingHowBody:
+    'Real cases help you notice recurring patterns, locate the decision gate and reflect on who holds responsibility, while there is still room to act.',
+  landingStepOneTitle: 'Enter the situation',
+  landingStepOneBody:
+    'Work through a curated research case up to a real decision point, without seeing the outcome.',
+  landingStepTwoTitle: 'Commit to a reading',
+  landingStepTwoBody:
+    'Identify the pattern and gate you think matter most. Your interpretation comes before the reveal.',
+  landingStepThreeTitle: 'Reflect through contrast',
+  landingStepThreeBody:
+    'Compare your reading with what happened and examine a counter-case or an honest boundary in the corpus.',
+  landingStatement:
+    'Not a test of whether research is good or bad. A way to notice what might happen next, early enough to respond.',
+  landingStatementLabel: 'Built for students & researchers',
 
   sessionStart: 'Start session',
   studentOpenDev: 'Skip to student flow (dev)',
 
   routeChoiceTitle: 'Choose how to begin',
+  routeChoiceKicker: 'Your perspective',
   routeChoiceIntro: 'Select the option that matches what you are here to do.',
-  routeChoiceResearcherLabel: 'Researcher — individual',
+  routeChoiceResearcherLabel: 'Researcher',
   routeChoiceResearcherHint:
     'Describe a technology, map its function and form, and see how your prediction compares to similar cases.',
   routeChoiceStudentAction: 'Continue as a student',
@@ -32,6 +84,7 @@ export default {
   researcherTagIntro:
     'Domain, Function, and Form together place your technology in the case corpus.',
   researcherTagDomainLabel: 'Domain',
+  caseTechnologyDomainLabel: 'Technology domain',
   researcherTagFunctionsLabel: 'Function(s)',
   researcherTagFormsLabel: 'Form(s)',
   researcherTagSubmit: 'Submit',
@@ -119,6 +172,11 @@ export default {
   intakeComprehensionTitle: 'One last check',
   intakeOneAttempt: 'One attempt only — you will not be asked again.',
   intakeSubmit: 'Continue',
+  intakeCheckAnswers: 'Check answers',
+  intakeAnswerHintTitle: 'A hint before you continue',
+  intakeAnswerHintIntro: 'Look for these three ideas in the questions above:',
+  intakeAnswersCorrect: 'All three answers are correct. You can continue.',
+  intakeAnswersRetry: 'You can revise your choices using the hint, or continue when you are ready.',
   intakeSubmitting: 'Saving...',
   intakePrimerContinue: 'Got it, continue',
   intakeContinue: 'Continue',
@@ -126,7 +184,7 @@ export default {
   intakeDoneBody: 'Your session is ready. Next, choose a case to work through.',
   intakeGoToCases: 'Choose a case',
 
-  studentTitle: 'Student — individual',
+  studentTitle: 'Student',
   studentIntro: 'Work through up to three cases, one decision at a time.',
   studentStart: 'Start a session',
   studentStarting: 'Starting your session...',
@@ -177,8 +235,6 @@ export default {
   contrastSubmit: 'Submit',
   contrastSubmitting: 'Saving...',
   contrastSaved: 'Reflection saved.',
-  contrastOpenAreaMessage:
-    'This area is not yet covered by a counter-case in the current corpus. The tool does not infer a solution where the evidence base has none.',
 
   anotherCaseProgress: 'You have completed {current} of {total} case reflections.',
   anotherCaseYes: 'Yes, another case',

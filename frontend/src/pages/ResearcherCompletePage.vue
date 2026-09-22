@@ -149,19 +149,16 @@
               </q-card-section>
             </q-card>
 
-            <q-card v-if="report.contrast_type" flat bordered>
+            <q-card v-if="report.contrast_type === 'twin_counter_case'" flat bordered>
               <q-card-section>
-                <template v-if="report.contrast_type === 'twin_counter_case'">
-                  <div class="text-subtitle2 q-mb-sm">{{ t('contrastTwinTitle') }}</div>
-                  <q-chip v-if="report.gate_lever" outline color="primary">
-                    {{ GATE_DISPLAY_BY_ID[report.gate_lever].label }}
-                  </q-chip>
-                  <div class="q-mt-sm">
-                    <div class="text-caption text-grey-7">{{ t('contrastResponseLabel') }}</div>
-                    <div class="text-body1">{{ report.learner_response }}</div>
-                  </div>
-                </template>
-                <div v-else class="text-body2">{{ t('contrastOpenAreaMessage') }}</div>
+                <div class="text-subtitle2 q-mb-sm">{{ t('contrastTwinTitle') }}</div>
+                <q-chip v-if="report.gate_lever" outline color="primary">
+                  {{ GATE_DISPLAY_BY_ID[report.gate_lever].label }}
+                </q-chip>
+                <div class="q-mt-sm">
+                  <div class="text-caption text-grey-7">{{ t('contrastResponseLabel') }}</div>
+                  <div class="text-body1">{{ report.learner_response }}</div>
+                </div>
               </q-card-section>
             </q-card>
 
@@ -255,7 +252,6 @@ onMounted(() => {
 
 <style scoped>
 .researcher-complete-page {
-  max-width: 760px;
   margin: 0 auto;
 }
 </style>

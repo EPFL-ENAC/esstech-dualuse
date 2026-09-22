@@ -143,6 +143,29 @@ async def test_post_sessions_accepts_explicit_researcher_route(app_client):
     assert response.json()["mapping_status"] == "unmapped"
 
 
+async def test_create_intake_retry_returns_stored_intake_without_overwriting(
+    app_client,
+):
+    session_id = await _start_session(app_client, route="researcher")
+    first = await app_client.post(
+        f"/sessions/{session_id}/researcher/intake",
+        json={"raw_description": "the original description"},
+    )
+    retry = await app_client.post(
+        f"/sessions/{session_id}/researcher/intake",
+        json={"raw_description": "a changed retry payload"},
+    )
+
+    assert first.status_code == 201
+    assert retry.status_code == 201
+    first_body = first.json()
+    retry_body = retry.json()
+    assert retry_body["id"] == first_body["id"]
+    assert retry_body["session_id"] == first_body["session_id"]
+    assert retry_body["mapping_status"] == first_body["mapping_status"]
+    assert retry_body["raw_description"] == "the original description"
+
+
 async def test_get_intake_404s_before_any_intake_is_started(app_client):
     session_id = await _start_session(app_client, route="researcher")
 

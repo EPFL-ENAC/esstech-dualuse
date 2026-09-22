@@ -13,7 +13,14 @@ from api.models import (
     FeedbackRecord,
     SessionIntake,
 )
-from api.models.enums import ContrastType, Gate, MatchResult, Pattern, ScaffoldingDepth
+from api.models.enums import (
+    ContrastType,
+    Domain,
+    Gate,
+    MatchResult,
+    Pattern,
+    ScaffoldingDepth,
+)
 from api.services.contrast import find_counter_case_link
 from api.services.sessions import get_owned_session, require_student_route
 
@@ -22,6 +29,7 @@ class CompletedEncounterReport(BaseModel):
     """One encounter that reached commitment, feedback, and contrast."""
 
     case_title: str
+    domain: Domain
     committed_pattern: Pattern
     committed_gate: Gate
     match_result: MatchResult
@@ -180,6 +188,7 @@ async def get_session_report(
         encounter_reports.append(
             CompletedEncounterReport(
                 case_title=cases_by_id[state.encounter.case_id].title,
+                domain=cases_by_id[state.encounter.case_id].domain,
                 committed_pattern=commitment.pattern,
                 committed_gate=commitment.gate,
                 match_result=feedback.match_result,

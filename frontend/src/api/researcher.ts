@@ -84,6 +84,7 @@ export type InclusionReason = 'shared_function' | 'widened_by_domain';
 export interface ComparisonSetCaseSummary {
   case_id: string;
   title: string;
+  domain: Domain;
 }
 
 /** The cases matched to a session's technology intake. */

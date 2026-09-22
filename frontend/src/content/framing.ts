@@ -31,12 +31,4 @@ export const FRAMING_QUESTIONS: readonly FramingQuestion[] = [
     prompt: 'Who else could repurpose this capability, and for what purpose?',
     kind: 'text',
   },
-  {
-    // The learner's own reading of where this sits. Deliberately separate from
-    // the commitment's top-level gate: the two may coincide, but one is never
-    // derived from the other.
-    key: 'gate',
-    prompt: 'At which decision gate does this choice occur?',
-    kind: 'gate',
-  },
 ];

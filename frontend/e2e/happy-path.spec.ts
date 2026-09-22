@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { COMPREHENSION_CHECK, DIAGNOSTIC_ITEMS, MICRO_PRIMER } from '../src/content/intake';
-import { TARGETED_CORRECTION } from '../src/content/intake';
+import {
+  COMPREHENSION_CHECK,
+  DIAGNOSTIC_ITEMS,
+  MICRO_PRIMER,
+} from '../src/content/intake';
 
 /**
  * The full learner happy path, in a real browser.
@@ -18,14 +21,11 @@ import { TARGETED_CORRECTION } from '../src/content/intake';
  *     main path must not reach the browser before the reveal
  *   - reveal staying compute-or-fetch when the browser asks a second time
  *
- * It deliberately knows nothing about which answers are correct. The answer
- * key lives only in the backend, and a test that hardcoded it would quietly
- * copy it into the frontend repository. Instead the test branches on what the
- * UI actually shows, so it passes whether the primer appears or not and
- * whether the comprehension answer happens to be right or wrong.
+ * Correct-answer hints are an intentional part of the learner-facing UI, but
+ * they are guidance rather than a gate: a learner may continue after errors.
  */
 
-/** Pick the first option of every diagnostic item, whatever they happen to be. */
+/** Pick the first option of every diagnostic item, including likely errors. */
 async function answerDiagnostic(page: Page): Promise<void> {
   for (const item of DIAGNOSTIC_ITEMS) {
     const first = item.options[0];
@@ -55,11 +55,10 @@ test('a learner completes intake, commits to a case, and the reveal never change
   await page.getByRole('button', { name: 'Continue as a student' }).click();
   await expect(page.getByText('Before you begin')).toBeVisible();
 
-  // The placeholder disclaimer is part of the contract with the learner: it
-  // must be on screen, not merely in a source comment.
-  await expect(page.getByText(/Temporary placeholder, not a validated assessment/)).toBeVisible();
-
   await answerDiagnostic(page);
+  await page.getByRole('button', { name: 'Check answers' }).click();
+  await expect(page.getByText('A hint before you continue')).toBeVisible();
+  await expect(page.getByText(/continue when you are ready/i)).toBeVisible();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 
   // The primer appears only below the score threshold, which depends on an
@@ -71,21 +70,16 @@ test('a learner completes intake, commits to a case, and the reveal never change
     await page.getByRole('button', { name: 'Got it, continue' }).click();
   }
 
-  // --- comprehension check: one attempt, right or wrong ---
+  // --- comprehension check: an error teaches, but does not block ---
   await expect(comprehensionTitle).toBeVisible();
   const firstOption = COMPREHENSION_CHECK.options[0];
   expect(firstOption).toBeDefined();
   await page.getByRole('radio', { name: firstOption!.label, exact: true }).check();
-  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'Check answers' }).click();
 
-  // A wrong answer shows static correction content instead of a retry.
-  const correction = page.getByText(TARGETED_CORRECTION.title);
   const doneTitle = page.getByText('You are set up');
-  await expect(correction.or(doneTitle)).toBeVisible();
-  if (await correction.isVisible()) {
-    await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  }
-
+  await expect(page.getByText('Take another look')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(doneTitle).toBeVisible();
   await page.getByRole('button', { name: 'Choose a case' }).click();
 
@@ -148,4 +142,14 @@ test('a learner completes intake, commits to a case, and the reveal never change
   // original timestamp, rather than recomputing and restamping it.
   await expect(page.getByText(/^Revealed at /)).toHaveText(firstTimestamp);
   await expect(page.locator('.reveal-panel .text-h6')).toHaveText(firstVerdict);
+
+  // Start over must leave the old session and return to the first questions,
+  // including after a reload (the stores are persisted in the browser).
+  await page.goto('/student');
+  await page.getByRole('button', { name: 'Start over' }).click();
+  await expect(page).toHaveURL(/\/intake$/);
+  await expect(page.getByText('Before you begin')).toBeVisible();
+  await expect(page.getByText('Three quick questions')).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Three quick questions')).toBeVisible();
 });

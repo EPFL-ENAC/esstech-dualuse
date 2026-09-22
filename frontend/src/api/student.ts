@@ -10,6 +10,7 @@
  */
 import { apiFetch } from 'boot/api';
 import type { ScaffoldingDepth } from 'src/api/intake';
+import type { Domain } from 'src/api/researcher';
 
 export const PATTERNS = [
   'A',
@@ -44,6 +45,7 @@ export interface CaseCandidate {
   id: string;
   title: string;
   area: string;
+  domain: Domain;
   case_type: CaseType;
   narrative_until_crossroads: string;
 }
@@ -75,6 +77,7 @@ export interface RevealedCommitment {
 export interface RevealedCase {
   id: string;
   title: string;
+  domain: Domain;
   full_narrative: string;
   main_path_pattern: Pattern;
   main_path_gate: Gate;
@@ -114,6 +117,7 @@ export interface ContrastResponse {
 /** One encounter that reached commitment, feedback, and contrast. */
 export interface CompletedEncounterReport {
   case_title: string;
+  domain: Domain;
   committed_pattern: Pattern;
   committed_gate: Gate;
   match_result: MatchResult;
