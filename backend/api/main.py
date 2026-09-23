@@ -10,7 +10,7 @@ from fastapi_cache.backends.inmemory import InMemoryBackend
 from pydantic import BaseModel
 
 from api.config import config
-from api.db import create_db_and_tables, dispose_engine
+from api.db import dispose_engine, verify_schema_migrated
 from api.services.errors import ServiceError
 from api.views.auth import router as auth_router
 from api.views.cases import router as cases_router
@@ -26,7 +26,7 @@ basicConfig(level=INFO)
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
-    await create_db_and_tables()
+    await verify_schema_migrated()
     try:
         yield
     finally:
