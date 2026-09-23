@@ -27,10 +27,16 @@ const E2E_DB_NAME = 'app_e2e';
 const backendDir = fileURLToPath(new URL('../backend', import.meta.url));
 
 /**
- * The backend reads settings straight from the environment; it does not load
- * `.env` itself (that is done by the `dotenv run` wrapper in the Makefile,
- * which is deliberately bypassed here so DB_NAME cannot be overridden back to
- * the development database).
+ * The Makefile's `dotenv run` wrapper is deliberately bypassed here so
+ * DB_NAME cannot be overridden back to the development database -- but
+ * Config() (api/config.py) now reads `.env` directly itself via
+ * pydantic-settings' env_file, independent of any wrapper. So the real
+ * repo-root `.env` (including its real Google OAuth credentials) would
+ * otherwise reach this spawned backend for anything not explicitly set
+ * below. GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are forced to the empty
+ * string, not merely left unset, to actually keep OAuth dormant here --
+ * see google_oauth_configured()'s docstring (api/services/auth.py) for
+ * why unset alone would not be enough once env_file is in the picture.
  */
 const backendEnv = {
   DB_NAME: E2E_DB_NAME,
@@ -38,6 +44,12 @@ const backendEnv = {
   // Required by config.Config with no default, though no test path calls the
   // model. A placeholder keeps startup from failing.
   OPENAI_API_KEY: 'e2e-placeholder-key',
+  // Force the OAuth routes dormant for e2e: no test drives a "Sign in with
+  // Google" flow (there is no button for it yet), and a real backend
+  // reachable at localhost:8000 should never carry a developer's real
+  // Google OAuth credentials during an automated run.
+  GOOGLE_CLIENT_ID: '',
+  GOOGLE_CLIENT_SECRET: '',
 };
 
 export default defineConfig({

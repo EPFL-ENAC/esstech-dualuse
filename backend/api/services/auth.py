@@ -51,12 +51,19 @@ def google_oauth_configured() -> bool:
     registered (api/main.py includes auth_router unconditionally) but
     dormant: build_google_authorize_url and handle_google_callback both
     check this first and raise NotConfiguredError rather than reaching
-    config.GOOGLE_CLIENT_ID/SECRET while they're None.
+    config.GOOGLE_CLIENT_ID/SECRET while unset.
+
+    Checks truthiness, not just `is not None`: e2e (frontend/
+    playwright.config.ts) forces this path dormant by setting both to
+    the empty string, since leaving them merely unset wouldn't be
+    enough -- Config's env_file (api/config.py) reads the developer's
+    real .env directly, independent of what the spawned process is or
+    isn't given as a real env var. An empty-string env var parses to ""
+    for a str | None field, never to None, so `is not None` alone would
+    have missed it.
     """
 
-    return (
-        config.GOOGLE_CLIENT_ID is not None and config.GOOGLE_CLIENT_SECRET is not None
-    )
+    return bool(config.GOOGLE_CLIENT_ID) and bool(config.GOOGLE_CLIENT_SECRET)
 
 
 def _session_serializer() -> URLSafeTimedSerializer:

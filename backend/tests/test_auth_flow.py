@@ -189,12 +189,23 @@ async def test_config_does_not_raise_when_google_credentials_are_absent(monkeypa
     monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
     monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
 
+    from pydantic_settings import SettingsConfigDict
+
     from api.config import Config
+
+    class ConfigWithNoEnvFile(Config):
+        # Isolate from Config's real env_file (api/config.py): this
+        # machine's actual repo-root .env has real Google credentials,
+        # which would otherwise fill these back in despite delenv above
+        # -- this test wants "genuinely absent from every source".
+        model_config = SettingsConfigDict(
+            env_file="/definitely/does/not/exist/nope.env"
+        )
 
     # Same as get_config() in api/config.py: pydantic-settings injects
     # required fields (OPENAI_API_KEY) from the environment, which ty
     # cannot see, hence the same type: ignore used there.
-    fresh_config = Config()  # type: ignore
+    fresh_config = ConfigWithNoEnvFile()  # type: ignore
 
     assert fresh_config.GOOGLE_CLIENT_ID is None
     assert fresh_config.GOOGLE_CLIENT_SECRET is None
@@ -237,6 +248,25 @@ async def test_google_callback_returns_503_when_not_configured(app_client, monke
         "detail": "Google sign-in is not configured in this environment"
     }
     assert AUTH_SESSION_COOKIE not in response.cookies
+
+
+async def test_google_login_returns_503_when_credentials_are_empty_strings(
+    app_client, monkeypatch
+):
+    """Not just None: frontend/playwright.config.ts forces OAuth dormant
+    for e2e by setting both to the empty string (leaving them merely
+    unset isn't enough once Config reads .env directly -- see
+    google_oauth_configured()'s docstring). An empty-string env var
+    parses to "", never None, so this guards against a regression back
+    to an `is not None` check that would silently treat "" as
+    configured."""
+
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", "")
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", "")
+
+    response = await app_client.get("/auth/google/login", follow_redirects=False)
+
+    assert response.status_code == 503
 
 
 async def test_logout_clears_only_the_real_session_cookie(app_client, monkeypatch):
