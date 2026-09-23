@@ -175,6 +175,70 @@ async def test_callback_upstream_google_failure_returns_a_clean_typed_error(
     assert AUTH_SESSION_COOKIE not in response.cookies
 
 
+async def test_config_does_not_raise_when_google_credentials_are_absent(monkeypatch):
+    """The actual bug this change fixes: Config() used to be defined with
+    GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET as required (str, no default),
+    so building it raised a pydantic ValidationError the moment these
+    were absent from the environment -- and since `api/config.py`
+    evaluates `config = get_config()` at import time, and `api/main.py`
+    (and alembic's migrations/env.py) import it at module level, that
+    crashed the process before uvicorn ever bound to a port. This test
+    constructs a real Config() with both unset and confirms it no longer
+    raises."""
+
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+
+    from api.config import Config
+
+    # Same as get_config() in api/config.py: pydantic-settings injects
+    # required fields (OPENAI_API_KEY) from the environment, which ty
+    # cannot see, hence the same type: ignore used there.
+    fresh_config = Config()  # type: ignore
+
+    assert fresh_config.GOOGLE_CLIENT_ID is None
+    assert fresh_config.GOOGLE_CLIENT_SECRET is None
+
+
+async def test_google_login_returns_503_when_not_configured(app_client, monkeypatch):
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", None)
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", None)
+
+    response = await app_client.get("/auth/google/login", follow_redirects=False)
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "Google sign-in is not configured in this environment"
+    }
+    assert "oauth_state" not in response.cookies
+
+
+async def test_google_callback_returns_503_when_not_configured(app_client, monkeypatch):
+    """Defensive: the guard fires even though this route is normally only
+    reached after a successful /auth/google/login redirect. Asserting
+    exchange_google_code is never called proves the 503 is raised before
+    Google is contacted at all, not surfaced as an UpstreamAuthError."""
+
+    def _fail_if_called(code: str):
+        raise AssertionError("exchange_google_code must not run when not configured")
+
+    monkeypatch.setattr(auth_service, "exchange_google_code", _fail_if_called)
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", None)
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", None)
+
+    response = await app_client.get(
+        "/auth/google/callback",
+        params={"code": "fake-code", "state": "whatever-google-sent-back"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "Google sign-in is not configured in this environment"
+    }
+    assert AUTH_SESSION_COOKIE not in response.cookies
+
+
 async def test_logout_clears_only_the_real_session_cookie(app_client, monkeypatch):
     await _complete_login(
         app_client, monkeypatch, sub="google-subject-1", email="learner@example.com"

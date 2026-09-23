@@ -28,8 +28,12 @@ class Config(BaseSettings):
     OPENAI_API_KEY: str
     MODEL_NAME: str = "deepseek-ai/DeepSeek-V4-Flash-0731"
 
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
+    # None in an environment (e.g. a dev-branch deploy) where Google OAuth
+    # credentials aren't provisioned yet -- api.services.auth gates the
+    # routes that need them behind google_oauth_configured() rather than
+    # crashing Config() itself at import time.
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
     # Must exactly match what's registered in Google Cloud Console --
     # defaults to the local-dev value already registered there.
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"

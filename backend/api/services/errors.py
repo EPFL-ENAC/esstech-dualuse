@@ -42,3 +42,11 @@ class UpstreamAuthError(ServiceError):
     never the caller's fault, unlike ValidationError above."""
 
     status_code = 502
+
+
+class NotConfiguredError(ServiceError):
+    """A feature's required configuration is absent in this environment --
+    distinct from UpstreamAuthError: the external provider was never even
+    contacted."""
+
+    status_code = 503

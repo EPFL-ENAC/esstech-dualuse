@@ -13,7 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from api.config import config
 from api.models import AuthIdentity, LearningIdentity, User
 from api.models.enums import AuthProvider
-from api.services.errors import UpstreamAuthError, ValidationError
+from api.services.errors import NotConfiguredError, UpstreamAuthError, ValidationError
 
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -41,6 +41,22 @@ def cookies_are_secure() -> bool:
     """
 
     return config.APP_URL.startswith("https://")
+
+
+def google_oauth_configured() -> bool:
+    """Whether this environment has real Google OAuth credentials.
+
+    False on a dev-branch deploy before GOOGLE_CLIENT_ID/
+    GOOGLE_CLIENT_SECRET are provisioned in Infisical. The routes stay
+    registered (api/main.py includes auth_router unconditionally) but
+    dormant: build_google_authorize_url and handle_google_callback both
+    check this first and raise NotConfiguredError rather than reaching
+    config.GOOGLE_CLIENT_ID/SECRET while they're None.
+    """
+
+    return (
+        config.GOOGLE_CLIENT_ID is not None and config.GOOGLE_CLIENT_SECRET is not None
+    )
 
 
 def _session_serializer() -> URLSafeTimedSerializer:
@@ -105,6 +121,9 @@ def build_google_authorize_url() -> GoogleAuthorizeUrl:
     not ongoing access to Google APIs afterward, so no refresh token is
     requested.
     """
+
+    if not google_oauth_configured():
+        raise NotConfiguredError("Google sign-in is not configured in this environment")
 
     state = secrets.token_urlsafe(32)
     params = {
@@ -219,6 +238,9 @@ async def handle_google_callback(
     exercise this exact conversion, rather than needing to reimplement
     it itself.
     """
+
+    if not google_oauth_configured():
+        raise NotConfiguredError("Google sign-in is not configured in this environment")
 
     if state_cookie is None or not verify_state(state_cookie, query_state=state):
         raise ValidationError("Invalid or expired OAuth state")
