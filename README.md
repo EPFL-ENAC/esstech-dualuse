@@ -10,6 +10,89 @@
 | CI/CD | GitHub Actions (checks, tests, deploy) |
 | Containers | Docker, docker-compose (PostgreSQL) |
 
+## Learning flow
+
+A learner picks one of two routes on `/start`. Both end in a report, and both
+ask for a decision **before** the answer is shown: the case's main path never
+reaches the browser until the reveal.
+
+### Student route
+
+Up to three cases per session, one decision at a time.
+
+```mermaid
+flowchart TD
+    A[Home] --> B[Choose a route]
+    B -->|Student| C[Intake: diagnostic<br/>3 questions]
+    C -->|Check answers| D[Correct answers shown,<br/>answers locked]
+    D --> E{Score below<br/>the threshold?}
+    E -->|Yes| F[Micro-primer]
+    E -->|No| G
+    F --> G[Comprehension check<br/>1 question]
+    G --> H[Scaffolding depth recorded]
+
+    H --> I[Choose a case<br/>up to 3 candidates]
+    I --> J[Read the situation<br/>up to the crossroads]
+    J --> K[Commit: framing answers,<br/>pattern and decision gate]
+    K --> L[Reveal: full narrative,<br/>main path, sources]
+    L --> M[Verdict: match,<br/>partial match or mismatch]
+    M --> N{Linked<br/>counter-case?}
+    N -->|Yes| O[Counter-case shown,<br/>learner reflects on it]
+    N -->|No| P[Open area acknowledged<br/>automatically]
+    O --> Q{3 cases<br/>completed?}
+    P --> Q
+    Q -->|No| I
+    Q -->|Yes| R[Session debrief:<br/>verdicts, reflections,<br/>suggested next focus]
+```
+
+- **Intake:** the answer key stays on the server. "Check answers" submits the
+  answers, and the response carries the correct options; the page shows them
+  with the answers locked. A wrong answer teaches but never blocks.
+- **Placeholders:** the intake items, the threshold (2 of 3) and the rule that
+  derives the scaffolding depth are stand-ins for content not yet written
+  (`backend/api/content/intake_key.py`). Nothing reads the scaffolding depth
+  yet.
+- **Reveal:** computed once and stored, so the verdict never changes if the
+  learner asks again.
+- **Cases:** a case the learner has already met, in any of their sessions, is
+  not offered again.
+
+### Researcher route
+
+One technology per session, compared against the curated cases.
+
+```mermaid
+flowchart TD
+    A[Home] --> B[Choose a route]
+    B -->|Researcher| C[Describe the technology<br/>in free text]
+    C --> D[Tag Function, Form<br/>and Domain]
+    D --> E{All three<br/>tagged?}
+    E -->|No, attempt left| D
+    E -->|No, 2 attempts used| X[Boundary exit:<br/>mapping could not be completed]
+    E -->|Yes, mapped| F[Gate and posture reflection<br/>written once]
+
+    F --> G[Comparison set built:<br/>cases sharing a function]
+    G --> H{Too few cases?}
+    H -->|Yes| I[Widen by domain]
+    H -->|No| J
+    I --> J[Browse the matched cases]
+    J --> K[Predict 2 or 3<br/>ranked patterns]
+    K --> L[Reveal: dominant and secondary<br/>patterns vs the prediction]
+    L --> M{Counter-case in<br/>the set?}
+    M -->|Yes| N[Counter-case shown,<br/>researcher reflects on it]
+    M -->|No| O[Open area acknowledged<br/>automatically]
+    N --> P[Session report]
+    O --> P
+    X --> P
+```
+
+- **Tagging:** two attempts in total. Running out is a normal ending, not an
+  error: the session goes straight to its report.
+- **Prediction:** written once; the reveal compares it with the pattern
+  distribution of the comparison set. If no case in the set carries a tagged
+  pattern, the report says so (low activation) instead of naming a dominant
+  one.
+
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) Python package and project manager
@@ -33,7 +116,11 @@ make install
 ```
 
 This step installs the backend and frontend dependencies and creates a local `.env`
-file from `.env.example` if none exists.
+file from `.env.example` if none exists. The backend installs exactly the versions
+pinned in `backend/uv.lock` (`uv sync --locked`), the same ones CI and the Docker
+image use. To upgrade a library, run `uv lock --upgrade-package <name>` in
+`backend/`, check that the tests and `make typecheck` still pass, and commit the
+new lock file.
 
 ### Backend
 
@@ -50,6 +137,12 @@ The interactive API documentation will be available at
 [http://localhost:8000/docs](http://localhost:8000/docs).
 
 The health check endpoint is at [http://localhost:8000/healthz](http://localhost:8000/healthz).
+
+The curated cases live only in `backend/scripts/seed_cases.py`. `make db-seed`
+loads them by title, so it is safe to run again. The Docker image does the same
+on every start (`backend/start.sh`, after the migrations), which means edits to
+the cases are made in that file, not in the database: changes made directly in
+the database are overwritten at the next start.
 
 ### Frontend
 

@@ -16,6 +16,7 @@ COPY start.sh /app/
 COPY api /app/api
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
+COPY scripts /app/scripts
 
 # Install exactly the versions in uv.lock, into the system Python so that
 # start.sh finds alembic and uvicorn on PATH.
