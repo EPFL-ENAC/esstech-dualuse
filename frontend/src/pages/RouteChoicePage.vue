@@ -17,7 +17,7 @@
         <div class="col-12 col-sm-6">
           <q-card class="route-card" flat bordered>
             <q-card-section>
-              <div class="route-card__icon"><q-icon name="school" size="28px" /></div>
+              <div class="route-card__icon"><FeatherIcon name="student" /></div>
               <div class="text-subtitle1">{{ t('studentTitle') }}</div>
               <div class="text-body2 text-grey-7 q-mt-xs">{{ t('studentIntro') }}</div>
             </q-card-section>
@@ -36,9 +36,7 @@
         <div class="col-12 col-sm-6">
           <q-card class="route-card" flat bordered>
             <q-card-section>
-              <div class="route-card__icon route-card__icon--research">
-                <q-icon name="biotech" size="28px" />
-              </div>
+              <div class="route-card__icon"><FeatherIcon name="research" /></div>
               <div class="text-subtitle1">{{ t('routeChoiceResearcherLabel') }}</div>
               <div class="text-body2 text-grey-7 q-mt-xs">
                 {{ t('routeChoiceResearcherHint') }}
@@ -67,6 +65,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import ErrorBanner from 'components/ErrorBanner.vue';
+import FeatherIcon from 'components/FeatherIcon.vue';
 import { useErrorMessage } from 'src/composables/useApiError';
 import { createSession } from 'src/api/sessions';
 import { useResearcherStore } from 'stores/researcher';
@@ -105,55 +104,48 @@ async function chooseResearcher() {
   margin: 0 auto;
 }
 .route-choice-page__heading {
-  max-width: 650px;
-  margin-bottom: 14px;
+  max-width: 40.625rem;
+  margin-bottom: var(--space-3);
 }
 .route-choice-page__kicker {
-  margin-bottom: 14px;
-  color: var(--du-coral);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
+  margin-bottom: var(--space-3);
+  color: var(--fg-muted);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-bold);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .route-choice-page__heading .text-subtitle2 {
-  margin-top: 12px;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.55;
+  margin-top: var(--space-2);
+  font-size: var(--fs-body);
+  font-weight: var(--w-normal);
+  line-height: var(--lh-relaxed);
 }
 .route-card {
   height: 100%;
   overflow: hidden;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color var(--t-base);
 }
 .route-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 45px rgba(18, 32, 31, 0.1) !important;
+  border-color: var(--fg);
 }
 .route-card .q-card__section {
-  min-height: 220px;
+  min-height: 13.75rem;
 }
 .route-card__icon {
-  width: 58px;
-  height: 58px;
+  width: 3.5rem;
+  height: 3.5rem;
   display: grid;
   place-items: center;
-  margin-bottom: 38px;
-  border-radius: 18px;
-  color: var(--du-ink);
-  background: var(--du-mint);
-}
-.route-card__icon--research {
-  color: white;
-  background: var(--du-blue);
+  margin-bottom: var(--space-5);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius);
+  color: var(--primary);
+  background: var(--bg-subtle);
 }
 .route-card .text-subtitle1 {
-  font-family: var(--du-display);
-  font-size: 25px;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: var(--fs-h5);
+  font-weight: var(--w-bold);
+  line-height: 1.3;
 }
 </style>

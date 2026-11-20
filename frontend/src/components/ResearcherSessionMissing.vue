@@ -1,7 +1,7 @@
 <!-- UX only, not a security boundary: the backend enforces the Researcher
      route. -->
 <template>
-  <q-banner class="bg-grey-2" rounded>
+  <q-banner class="app-alert--info">
     {{ t('researcherSessionMissing') }}
     <template #action>
       <q-btn flat :label="t('sessionStart')" to="/start" />

@@ -33,9 +33,8 @@
 
           <q-banner
             v-if="store.diagnostic"
-            class="intake-hint q-mt-lg"
-            :class="store.diagnosticPassed ? 'intake-hint--success' : 'intake-hint--review'"
-            rounded
+            class="q-mt-lg"
+            :class="store.diagnosticPassed ? 'app-alert--success' : 'app-alert--warning'"
           >
             <template #avatar>
               <q-icon :name="store.diagnosticPassed ? 'check_circle' : 'tips_and_updates'" />
@@ -100,15 +99,11 @@
           />
 
           <template v-if="store.comprehension">
-            <q-banner
-              v-if="store.comprehension.correct"
-              class="intake-hint intake-hint--success q-mt-lg"
-              rounded
-            >
+            <q-banner v-if="store.comprehension.correct" class="app-alert--success q-mt-lg">
               <template #avatar><q-icon name="check_circle" /></template>
               <div class="text-weight-medium">{{ t('intakeComprehensionCorrect') }}</div>
             </q-banner>
-            <q-banner v-else class="intake-hint intake-hint--review q-mt-lg" rounded>
+            <q-banner v-else class="app-alert--warning q-mt-lg">
               <template #avatar><q-icon name="tips_and_updates" /></template>
               <div class="text-weight-bold">{{ TARGETED_CORRECTION.title }}</div>
               <div class="q-mt-xs">{{ TARGETED_CORRECTION.body }}</div>
@@ -308,24 +303,11 @@ onMounted(async () => {
 .intake-page__prose {
   white-space: pre-wrap;
 }
-.intake-hint {
-  border: 1px solid transparent;
-}
-.intake-hint--review {
-  color: #75521d;
-  background: #fff4d6;
-  border-color: rgba(190, 132, 34, 0.24);
-}
-.intake-hint--success {
-  color: #174f3c;
-  background: #e5f6ed;
-  border-color: rgba(23, 79, 60, 0.2);
-}
 .intake-hint__answers {
-  margin: 12px 0;
-  padding-left: 20px;
+  margin: var(--space-3) 0;
+  padding-left: var(--space-4);
 }
 .intake-hint__answers li + li {
-  margin-top: 6px;
+  margin-top: var(--space-2);
 }
 </style>

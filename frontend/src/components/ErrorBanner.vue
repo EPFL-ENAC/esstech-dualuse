@@ -1,5 +1,5 @@
 <template>
-  <q-banner class="bg-red-1 text-negative" rounded>
+  <q-banner class="app-alert--danger">
     <template #avatar><q-icon name="warning" color="negative" /></template>
     <div class="text-weight-medium">{{ t('errorTitle') }}</div>
     <div>{{ message }}</div>

@@ -5,7 +5,7 @@ export default defineConfig(() => {
   return {
     boot: ['i18n'],
 
-    css: ['app.scss'],
+    css: ['epfl/tokens/colors_and_type.css', 'app.scss'],
 
     extras: ['material-icons', 'material-symbols-rounded'],
 

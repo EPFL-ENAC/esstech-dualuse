@@ -64,7 +64,7 @@
               <div class="text-subtitle1 q-mb-xs">{{ t('researcherTagTitle') }}</div>
               <div class="text-caption text-grey-7 q-mb-md">{{ t('researcherTagIntro') }}</div>
 
-              <q-banner v-if="intakeStore.hasAttemptedTag" class="bg-grey-2 q-mb-md" rounded dense>
+              <q-banner v-if="intakeStore.hasAttemptedTag" class="app-alert--info q-mb-md" dense>
                 <div>{{ t('researcherTagPartialNotice') }}</div>
                 <div class="text-caption q-mt-xs">
                   {{ t('researcherTagAttemptRemaining') }}

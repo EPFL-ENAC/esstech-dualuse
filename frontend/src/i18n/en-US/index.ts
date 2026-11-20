@@ -4,6 +4,10 @@ export default {
 
   footerTagline:
     'A reflective space for seeing where research could lead, while there is still time to choose differently.',
+  navHome: 'Home',
+  navStart: 'Start',
+  navHow: 'How it works',
+  footerExplore: 'Explore',
   footerPurpose: 'Built for responsible research and education',
 
   landingKicker: 'A reflection tool for science and technology',
@@ -14,7 +18,6 @@ export default {
   landingTry: 'Try the tool',
   landingTryShort: 'Begin a reflection',
   landingDiscover: 'See how it works',
-  landingMetaTime: '10–15 minutes',
   landingMetaPrivacy: 'Private reflection',
   landingMetaNoScore: 'No scores or judgment',
   landingPathsTitle: 'Two ways into the same question.',

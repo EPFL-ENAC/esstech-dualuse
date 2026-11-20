@@ -1,15 +1,20 @@
 // Quasar SCSS (& Sass) Variables
 // --------------------------------------------------
-// You can change the default values of Quasar variables here.
+// EPFL brand mapped onto Quasar's colours (epfl-design skill, Quasar kit).
+// Quasar generates its colour classes from these at build time, so they must be
+// literal values; src/css/epfl/tokens/colors_and_type.css holds the same colours
+// as CSS variables.
 
-$primary: #193c39;
-$secondary: #b9e7d0;
-$accent: #ff6b52;
+$primary: #ff0000; // --epfl-red
+$secondary: #007480; // --epfl-canard
+$accent: #00a79f; // --epfl-leman
 
-$dark: #12201f;
-$dark-page: #0b1514;
+$dark: #212121; // --epfl-black
+$dark-page: #212121;
 
-$positive: #21ba45;
-$negative: #c10015;
-$info: #31ccec;
-$warning: #f2c037;
+$positive: #7ed321; // --epfl-green
+$negative: #ff0000; // --epfl-red
+$info: #4a90e2; // --epfl-blue
+$warning: #f5a623; // --epfl-orange
+
+$typography-font-family: "Suisse Int'l", Arial, 'Helvetica Neue', Helvetica, sans-serif;

@@ -218,6 +218,7 @@ The frontend is a Quasar v2 SPA under `frontend/src/`. The project layout is:
 | `frontend/src/components/` | Reusable components |
 | `frontend/src/stores/` | Pinia stores |
 | `frontend/src/boot/` | Quasar boot files |
+| `frontend/src/css/` | Global styles; `epfl/tokens/` holds the EPFL design tokens, copied unchanged from the [epfl-design skill](https://github.com/EPFL-ENAC/epfl-design-skill) |
 | `frontend/src/i18n/` | vue-i18n locale messages |
 
 To run frontend checks:

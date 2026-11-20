@@ -4,6 +4,10 @@ export default {
 
   footerTagline:
     'Un espace de réflexion pour voir où la recherche pourrait mener, tant qu’il est encore temps de choisir autrement.',
+  navHome: 'Accueil',
+  navStart: 'Commencer',
+  navHow: 'Comment ça marche',
+  footerExplore: 'Explorer',
   footerPurpose: 'Conçu pour la recherche et l’éducation responsables',
 
   landingKicker: 'Un outil de réflexion pour la science et la technologie',
@@ -14,7 +18,6 @@ export default {
   landingTry: "Essayer l'outil",
   landingTryShort: 'Commencer une réflexion',
   landingDiscover: 'Découvrir le parcours',
-  landingMetaTime: '10–15 minutes',
   landingMetaPrivacy: 'Réflexion privée',
   landingMetaNoScore: 'Sans score ni jugement',
   landingPathsTitle: 'Deux voies vers la même question.',

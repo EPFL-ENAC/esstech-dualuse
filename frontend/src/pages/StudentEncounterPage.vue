@@ -1,7 +1,7 @@
 <template>
   <q-page class="q-pa-md">
     <div class="encounter-page column q-gutter-md">
-      <q-banner v-if="!encounter" class="bg-grey-2" rounded>
+      <q-banner v-if="!encounter" class="app-alert--info">
         {{ t('encounterMissing') }}
         <template #action>
           <q-btn flat :label="t('casesTitle')" @click="goToCases" />

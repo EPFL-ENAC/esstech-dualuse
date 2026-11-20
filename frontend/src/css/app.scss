@@ -1,54 +1,49 @@
+// Global styles. Colours, type and shape come from the EPFL tokens in
+// src/css/epfl/tokens (loaded before this file); nothing here defines its own
+// palette. The brand rules that Quasar's defaults break are corrected below:
+// flat surfaces with borders instead of shadows, 2px radii, no rotation or lift
+// on hover, a 2px outline for focus.
+
 :root {
-  --du-paper: #f6f3ec;
-  --du-surface: #fffdf8;
-  --du-ink: #12201f;
-  --du-ink-soft: #566562;
-  --du-line: rgba(18, 32, 31, 0.14);
-  --du-mint: #b9e7d0;
-  --du-coral: #ff6b52;
-  --du-blue: #476bff;
-  --du-display: 'Proxima Nova', 'Avenir Next', Arial, sans-serif;
-  --du-flow-width: 900px;
+  --app-flow-width: 56.25rem;
 }
 
 html {
   scroll-behavior: smooth;
 }
-body {
-  color: var(--du-ink);
-  background: var(--du-paper);
-  font-family: 'Proxima Nova', 'Avenir Next', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+
 .app-shell {
-  background: var(--du-paper);
+  background: var(--bg);
+}
+
+// ---------------------------------------------------------------- header
+
+.app-header {
+  color: var(--fg);
+  background: var(--bg);
+  border-bottom: var(--border-w) solid var(--border-subtle);
 }
 .app-header {
-  top: 0;
-  left: 0;
-  width: 100%;
-  color: var(--du-ink);
-  background: linear-gradient(110deg, rgba(255, 253, 248, 0.72), rgba(246, 243, 236, 0.5));
-  border: 0;
-  border-bottom: 1px solid rgba(18, 32, 31, 0.1);
-  border-radius: 0;
-  box-shadow:
-    0 10px 32px rgba(18, 32, 31, 0.08),
-    inset 0 -1px 0 rgba(18, 32, 31, 0.05);
-  -webkit-backdrop-filter: blur(22px) saturate(155%);
-  backdrop-filter: blur(22px) saturate(155%);
-  overflow: hidden;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    backdrop-filter 0.25s ease;
+}
+.app-header--glass {
+  background: rgb(255 255 255 / 40%);
+  border-bottom-color: transparent;
+  -webkit-backdrop-filter: blur(1rem) saturate(1.4);
+  backdrop-filter: blur(1rem) saturate(1.4);
 }
 .app-header__toolbar {
   width: 100%;
-  min-height: 64px;
-  padding: 0 24px;
+  min-height: var(--header-h);
+  padding: 0 var(--gutter);
 }
 .app-brand {
   display: flex;
   align-items: center;
   min-width: 0;
-  height: 64px;
   padding: 0;
 }
 .app-brand__link {
@@ -61,54 +56,76 @@ body {
 }
 .app-brand__logo {
   display: block;
-  width: 174px;
+  width: 10.875rem;
   height: auto;
-  max-height: 24px;
+  max-height: 1.5rem;
   object-fit: contain;
   object-position: left center;
 }
 .app-header__locale {
-  width: auto;
-  min-width: 104px;
-  min-height: 36px;
-  padding: 0 12px;
-  color: var(--du-ink);
-  background: rgba(255, 255, 255, 0.66);
-  border: 2px solid var(--du-ink);
-  border-radius: 11px 14px 10px 13px;
-  box-shadow: 3px 3px 0 rgba(18, 32, 31, 0.16);
-  font-size: 12px;
-  font-weight: 700;
-  transform: rotate(0.5deg);
-  transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease;
+  min-width: 6.5rem;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  color: var(--fg);
+  border: var(--border-w) solid var(--border-strong);
+  font-size: var(--fs-sm);
+  font-weight: var(--w-bold);
 }
 .app-header__locale:hover {
-  box-shadow: 1px 1px 0 rgba(18, 32, 31, 0.16);
-  transform: translate(2px, 2px) rotate(0);
+  background: var(--epfl-gray-100);
+  border-color: var(--epfl-gray-600);
 }
 .app-header__locale .q-icon {
   flex: 0 0 auto;
 }
 .app-header__locale-label {
-  margin-left: 7px;
+  margin-left: 0.5rem;
   line-height: 1;
   white-space: nowrap;
 }
 
+.app-nav {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-4);
+  height: var(--header-h);
+  margin: 0 var(--space-4) 0 auto;
+}
+.app-nav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--fg);
+  font-weight: var(--w-bold);
+  text-decoration: none;
+}
+.app-nav__link:hover {
+  color: var(--primary);
+}
+// The 7x6 red marker under the active item, as on epfl.ch.
+.app-nav__link.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0.4375rem;
+  height: 0.375rem;
+  background: var(--primary);
+}
+
+// ---------------------------------------------------------------- footer
+
 .app-footer {
   width: 100%;
-  margin-top: 56px;
-  padding: 76px max(40px, calc((100vw - 1240px) / 2)) 34px;
-  color: #f7f4ee;
-  background: #0d1d1b;
+  margin-top: var(--space-6);
+  padding: var(--space-5) max(var(--gutter), calc((100vw - 77.5rem) / 2)) var(--space-4);
+  color: var(--fg-inverse);
+  background: var(--bg-dark);
 }
 .app-footer__main {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-  gap: 80px;
-  min-height: 190px;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.2fr) minmax(17.5rem, 0.8fr);
+  gap: var(--space-5);
 }
 .app-footer__identity {
   display: flex;
@@ -121,53 +138,66 @@ body {
 }
 .app-footer__brand img {
   display: block;
-  width: 210px;
+  width: 13rem;
   height: auto;
 }
 .app-footer__identity p {
-  max-width: 380px;
-  margin: 28px 0 0;
-  color: rgba(247, 244, 238, 0.62);
-  font-size: 15px;
-  line-height: 1.65;
+  max-width: 24rem;
+  margin: var(--space-4) 0 0;
+  color: var(--epfl-gray-300);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
 }
 .app-footer__partners-block {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-start;
-  padding-top: 2px;
+}
+.app-footer__links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.app-footer__links a {
+  color: var(--fg-inverse);
+  text-decoration: none;
+}
+.app-footer__links a:hover {
+  text-decoration: underline;
 }
 .app-footer__powered {
-  color: rgba(247, 244, 238, 0.72);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  color: var(--epfl-gray-300);
+  font-size: var(--fs-xs);
+  font-weight: var(--w-bold);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .app-footer__partners {
   display: block;
-  width: min(340px, 100%);
+  width: min(21rem, 100%);
   height: auto;
-  margin-top: 25px;
+  margin-top: var(--space-3);
 }
 .app-footer__bottom {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
-  margin-top: 32px;
-  padding-top: 28px;
-  border-top: 1px solid rgba(247, 244, 238, 0.12);
-  color: rgba(247, 244, 238, 0.38);
-  font-size: 12px;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: var(--border-w) solid var(--border-on-dark);
+  color: var(--epfl-gray-500);
+  font-size: var(--fs-xs);
 }
 
+// ----------------------------------------------------------------- pages
+
 .q-page:not(.landing-page) {
-  padding: 48px 24px 80px !important;
+  padding: var(--space-5) var(--space-4) var(--space-6) !important;
 }
 .q-page:not(.landing-page) > .column {
-  width: min(100%, var(--du-flow-width));
-  max-width: var(--du-flow-width) !important;
+  width: min(100%, var(--app-flow-width));
+  max-width: var(--app-flow-width) !important;
   margin-right: auto;
   margin-left: auto;
 }
@@ -175,165 +205,173 @@ body {
 .q-page:not(.landing-page) > .column > .q-banner {
   width: 100%;
 }
-.q-page:not(.landing-page) .text-h5 {
-  font-family: var(--du-display);
-  font-size: clamp(34px, 4vw, 46px);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
+.q-page:not(.landing-page) > .column > .row.justify-end {
+  width: 100%;
+  gap: var(--space-2);
+  margin-top: 0.125rem;
 }
-.q-page:not(.landing-page) .text-h6 {
-  font-family: var(--du-display);
-  font-size: 24px;
+
+.text-h5 {
+  font-size: var(--fs-h3);
+  font-weight: var(--w-bold);
+  letter-spacing: 0;
+  line-height: var(--lh-normal);
 }
-.q-page:not(.landing-page) .q-card {
-  border: 1px solid var(--du-line);
-  border-radius: 20px;
-  background: var(--du-surface);
-  box-shadow: 0 10px 35px rgba(18, 32, 31, 0.045);
+.text-h6 {
+  font-size: var(--fs-h5);
+  font-weight: var(--w-bold);
+  letter-spacing: 0;
+  line-height: 1.4;
 }
-.q-page:not(.landing-page) .q-card__section {
-  padding: 24px;
+
+// Quasar's grey and green utilities, pointed at the EPFL text tokens: the
+// bright web green does not have enough contrast on white.
+.text-grey-7 {
+  color: var(--fg-muted) !important;
 }
-.q-page:not(.landing-page) .q-card__actions {
+.text-positive {
+  color: var(--epfl-green-text) !important;
+}
+
+// ----------------------------------------------------------------- cards
+
+.q-card {
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: none;
+}
+.q-card__section {
+  padding: var(--space-4);
+}
+.q-card__actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 10px;
-  min-height: 66px;
-  padding: 4px 20px 20px;
-}
-.q-page:not(.landing-page) .q-btn {
-  min-height: 42px;
-  border: 2px solid currentColor;
-  border-radius: 11px 15px 10px 14px;
-  font-weight: 750;
-  text-transform: none;
-  letter-spacing: 0;
-  box-shadow: 3px 3px 0 currentColor;
-  transform: rotate(-0.25deg);
-  transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    opacity 0.16s ease;
-}
-.q-page:not(.landing-page) .q-btn:nth-of-type(even) {
-  border-radius: 14px 10px 15px 11px;
-  transform: rotate(0.25deg);
-}
-.q-page:not(.landing-page) .q-btn:not(.disabled):not([disabled]):hover {
-  box-shadow: 1px 1px 0 currentColor;
-  transform: translate(2px, 2px) rotate(0);
-}
-.q-page:not(.landing-page) .q-btn.bg-primary,
-.q-page:not(.landing-page) .q-btn.bg-negative,
-.q-page:not(.landing-page) .q-btn.bg-positive,
-.q-page:not(.landing-page) .q-btn.bg-warning {
-  border-color: var(--du-ink);
-  box-shadow: 4px 4px 0 var(--du-ink);
-}
-.q-page:not(.landing-page) .q-btn.bg-primary:not(.disabled):not([disabled]):hover,
-.q-page:not(.landing-page) .q-btn.bg-negative:not(.disabled):not([disabled]):hover,
-.q-page:not(.landing-page) .q-btn.bg-positive:not(.disabled):not([disabled]):hover,
-.q-page:not(.landing-page) .q-btn.bg-warning:not(.disabled):not([disabled]):hover {
-  box-shadow: 1px 1px 0 var(--du-ink);
-}
-.q-page:not(.landing-page) .q-btn.disabled,
-.q-page:not(.landing-page) .q-btn[disabled] {
-  box-shadow: 2px 2px 0 currentColor;
-  transform: none;
-}
-.q-page:not(.landing-page) .q-btn:focus-visible {
-  outline: 3px solid var(--du-coral);
-  outline-offset: 4px;
-}
-.q-page:not(.landing-page) .q-card__actions .q-btn,
-.q-page:not(.landing-page) > .column > .row.justify-end > .q-btn {
-  min-width: 132px;
-  padding-right: 18px;
-  padding-left: 18px;
-}
-.q-page:not(.landing-page) > .column > .row.justify-end {
-  width: 100%;
-  gap: 10px;
-  margin-top: 2px;
-}
-.q-page:not(.landing-page) .q-field--outlined .q-field__control {
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.62);
-}
-.q-page:not(.landing-page) .q-banner {
-  border-radius: 16px;
-}
-.q-page:not(.landing-page) .q-chip {
-  min-height: 30px;
-  border-radius: 9px;
+  gap: var(--space-2);
+  padding: 0.25rem var(--space-4) var(--space-4);
 }
 
-@media (max-width: 600px) {
-  .app-header {
-    top: 0;
-    left: 0;
-    width: 100%;
-    border-radius: 0;
+// --------------------------------------------------------------- buttons
+
+.q-btn {
+  border-radius: var(--radius);
+  font-weight: var(--w-bold);
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: none;
+}
+.q-btn:focus-visible {
+  outline: var(--focus-w) solid var(--primary-hover);
+  outline-offset: 0.125rem;
+}
+.q-btn.bg-primary:not(.disabled):not([disabled]):hover {
+  background: var(--primary-hover) !important;
+}
+.q-btn.bg-primary:not(.disabled):not([disabled]):active {
+  background: var(--primary-active) !important;
+}
+// Disabled stays fully opaque: grey fill, grey border, grey text.
+.q-btn.disabled,
+.q-btn[disabled] {
+  opacity: 1 !important;
+  color: var(--epfl-gray-300) !important;
+  background: var(--epfl-gray-100) !important;
+  border: var(--border-w) solid var(--epfl-gray-300);
+}
+.q-card__actions .q-btn,
+.q-page:not(.landing-page) > .column > .row.justify-end > .q-btn {
+  min-width: 8rem;
+}
+
+// ----------------------------------------------------------------- forms
+
+.q-field--outlined .q-field__control {
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+// --------------------------------------------------- alerts, chips, tags
+
+.q-banner {
+  border: var(--border-w) solid var(--border);
+  border-radius: 0;
+}
+.app-alert--info {
+  color: var(--info-fg);
+  background: var(--info-bg);
+  border-color: var(--info-border);
+}
+.app-alert--success {
+  color: var(--success-fg);
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+.app-alert--warning {
+  color: var(--warning-fg);
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+}
+.app-alert--danger {
+  color: var(--danger-fg);
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+.q-chip {
+  min-height: 1.875rem;
+  border-radius: var(--radius);
+}
+// Outlined chips are tags: neutral border, body-coloured text.
+.q-chip--outline {
+  color: var(--fg) !important;
+  border-color: var(--epfl-gray-300);
+}
+
+@media (max-width: 37.5rem) {
+  .app-nav {
+    display: none;
   }
   .app-header__toolbar {
-    min-height: 58px;
-    padding: 0 14px;
-  }
-  .app-brand {
-    height: 58px;
+    padding: 0 var(--space-3);
   }
   .app-brand__logo {
-    width: 142px;
+    width: 8.875rem;
     max-width: 48vw;
-    max-height: 20px;
+    max-height: 1.25rem;
   }
   .app-header__locale {
-    min-width: 40px;
-    width: 40px;
-    min-height: 34px;
+    min-width: 2.5rem;
+    width: 2.5rem;
     padding: 0;
   }
   .app-header__locale-label {
     display: none;
   }
   .app-footer {
-    margin-top: 36px;
-    padding: 54px 24px 28px;
+    margin-top: var(--space-5);
+    padding: var(--space-5) var(--space-4) var(--space-4);
   }
   .app-footer__main {
     grid-template-columns: 1fr;
-    gap: 52px;
-    min-height: 0;
+    gap: var(--space-5);
   }
   .app-footer__brand img {
-    width: 174px;
-  }
-  .app-footer__identity p {
-    margin-top: 22px;
-  }
-  .app-footer__partners {
-    width: min(290px, 86vw);
-    margin-top: 20px;
+    width: 10.875rem;
   }
   .app-footer__bottom {
     flex-direction: column;
-    gap: 8px;
-    margin-top: 50px;
+    gap: var(--space-2);
+    margin-top: var(--space-5);
   }
   .q-page:not(.landing-page) {
-    padding: 34px 16px 64px !important;
+    padding: var(--space-4) var(--space-3) var(--space-5) !important;
   }
-  .q-page:not(.landing-page) .q-card__section {
-    padding: 20px;
+  .q-card__section {
+    padding: var(--space-3);
   }
-  .q-page:not(.landing-page) .q-card__actions {
+  .q-card__actions {
     flex-wrap: wrap;
-    padding: 2px 16px 16px;
-  }
-  .q-page:not(.landing-page) .q-card__actions .q-btn,
-  .q-page:not(.landing-page) > .column > .row.justify-end > .q-btn {
-    min-width: 118px;
+    padding: 0.125rem var(--space-3) var(--space-3);
   }
 }

@@ -41,7 +41,7 @@
           <span>{{ t('casesLoading') }}</span>
         </div>
 
-        <q-banner v-else-if="candidates.length === 0" class="bg-grey-2" rounded>
+        <q-banner v-else-if="candidates.length === 0" class="app-alert--info">
           {{ t('casesEmpty') }}
         </q-banner>
 
