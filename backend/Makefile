@@ -1,6 +1,7 @@
+# --locked installs exactly the versions in uv.lock (and fails if the lock is
+# stale), so CI checks the same libraries as every developer machine.
 install:
-	uv venv --python 3.13 --allow-existing
-	uv pip install -e .[dev]
+	uv sync --locked --extra dev --python 3.13
 
 run:
 	uv run uvicorn api.main:app --reload

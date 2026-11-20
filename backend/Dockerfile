@@ -17,7 +17,10 @@ COPY api /app/api
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
 
-RUN uv pip install --system --no-cache-dir -e /app
+# Install exactly the versions in uv.lock, into the system Python so that
+# start.sh finds alembic and uvicorn on PATH.
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
+RUN uv sync --locked --no-cache
 
 EXPOSE 8000
 
