@@ -1,25 +1,22 @@
-"""Endpoint tests for the Google OAuth login/callback/logout flow.
+"""Endpoint tests for the Google OAuth login/callback/logout flow and the
+learner identity resolved from cookies.
 
-Most of these share app_client's isolated db_session, the same
-convention as every other flow test in this suite. The two
-get_current_learner tests near the bottom deliberately call it directly
-instead: app_client's fixture overrides get_current_learner outright
-(tests/conftest.py), so no test built on app_client ever exercises this
-function's real body -- only a direct call does.
+exchange_google_code is the only part of this flow that talks to Google, so
+it is the one function replaced here.
 """
 
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
 import httpx
+import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlmodel import select
-from starlette.requests import Request
-from starlette.responses import Response
 
 import api.services.auth as auth_service
 from api.config import config
-from api.dependencies import LEARNER_ID_COOKIE, get_current_learner
-from api.models import AuthIdentity, LearningIdentity, User
+from api.dependencies import LEARNER_ID_COOKIE
+from api.models import AuthIdentity, LearningIdentity, Session, User
 from api.services.auth import AUTH_SESSION_COOKIE, GoogleUserInfo, sign_session
 
 
@@ -124,7 +121,7 @@ async def test_callback_missing_state_cookie_is_rejected(app_client, monkeypatch
         follow_redirects=False,
     )
 
-    assert response.status_code == 422  # ValidationError: invalid request content
+    assert response.status_code == 422
     assert AUTH_SESSION_COOKIE not in response.cookies
 
 
@@ -143,18 +140,13 @@ async def test_callback_mismatched_state_is_rejected(app_client, monkeypatch):
         follow_redirects=False,
     )
 
-    assert response.status_code == 422  # ValidationError: invalid request content
+    assert response.status_code == 422
     assert AUTH_SESSION_COOKIE not in response.cookies
 
 
 async def test_callback_upstream_google_failure_returns_a_clean_typed_error(
     app_client, monkeypatch
 ):
-    """A failure while talking to Google (network error, Google rejecting
-    the code, or a malformed response) must render as a clean, typed 4xx/5xx
-    JSON body, the same as every other failure in this project -- never an
-    unhandled 500."""
-
     def _raise_request_error(code: str):
         raise httpx.RequestError("simulated network failure reaching Google")
 
@@ -169,46 +161,10 @@ async def test_callback_upstream_google_failure_returns_a_clean_typed_error(
         follow_redirects=False,
     )
 
-    assert response.status_code == 502  # UpstreamAuthError: Google's side failed
+    assert response.status_code == 502
     body = response.json()
     assert "detail" in body
     assert AUTH_SESSION_COOKIE not in response.cookies
-
-
-async def test_config_does_not_raise_when_google_credentials_are_absent(monkeypatch):
-    """The actual bug this change fixes: Config() used to be defined with
-    GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET as required (str, no default),
-    so building it raised a pydantic ValidationError the moment these
-    were absent from the environment -- and since `api/config.py`
-    evaluates `config = get_config()` at import time, and `api/main.py`
-    (and alembic's migrations/env.py) import it at module level, that
-    crashed the process before uvicorn ever bound to a port. This test
-    constructs a real Config() with both unset and confirms it no longer
-    raises."""
-
-    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
-    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
-
-    from pydantic_settings import SettingsConfigDict
-
-    from api.config import Config
-
-    class ConfigWithNoEnvFile(Config):
-        # Isolate from Config's real env_file (api/config.py): this
-        # machine's actual repo-root .env has real Google credentials,
-        # which would otherwise fill these back in despite delenv above
-        # -- this test wants "genuinely absent from every source".
-        model_config = SettingsConfigDict(
-            env_file="/definitely/does/not/exist/nope.env"
-        )
-
-    # Same as get_config() in api/config.py: pydantic-settings injects
-    # required fields (OPENAI_API_KEY) from the environment, which ty
-    # cannot see, hence the same type: ignore used there.
-    fresh_config = ConfigWithNoEnvFile()  # type: ignore
-
-    assert fresh_config.GOOGLE_CLIENT_ID is None
-    assert fresh_config.GOOGLE_CLIENT_SECRET is None
 
 
 async def test_google_login_returns_503_when_not_configured(app_client, monkeypatch):
@@ -225,11 +181,6 @@ async def test_google_login_returns_503_when_not_configured(app_client, monkeypa
 
 
 async def test_google_callback_returns_503_when_not_configured(app_client, monkeypatch):
-    """Defensive: the guard fires even though this route is normally only
-    reached after a successful /auth/google/login redirect. Asserting
-    exchange_google_code is never called proves the 503 is raised before
-    Google is contacted at all, not surfaced as an UpstreamAuthError."""
-
     def _fail_if_called(code: str):
         raise AssertionError("exchange_google_code must not run when not configured")
 
@@ -253,13 +204,8 @@ async def test_google_callback_returns_503_when_not_configured(app_client, monke
 async def test_google_login_returns_503_when_credentials_are_empty_strings(
     app_client, monkeypatch
 ):
-    """Not just None: frontend/playwright.config.ts forces OAuth dormant
-    for e2e by setting both to the empty string (leaving them merely
-    unset isn't enough once Config reads .env directly -- see
-    google_oauth_configured()'s docstring). An empty-string env var
-    parses to "", never None, so this guards against a regression back
-    to an `is not None` check that would silently treat "" as
-    configured."""
+    """frontend/playwright.config.ts forces OAuth dormant for e2e by setting
+    both to the empty string, and an empty env var parses to "", never None."""
 
     monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", "")
     monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", "")
@@ -283,13 +229,27 @@ async def test_logout_clears_only_the_real_session_cookie(app_client, monkeypatc
     assert LEARNER_ID_COOKIE not in set_cookie
 
 
-def _make_request(cookie_header: str = "") -> Request:
-    headers = [(b"cookie", cookie_header.encode())] if cookie_header else []
-    return Request({"type": "http", "headers": headers, "method": "GET", "path": "/"})
+@pytest.fixture
+async def anonymous_client(db_session):
+    """Like app_client, but resolves the learner from cookies for real."""
+
+    from api.db import get_db_session
+    from api.main import app
+
+    async def _override_session():
+        yield db_session
+
+    app.dependency_overrides[get_db_session] = _override_session
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    finally:
+        app.dependency_overrides.pop(get_db_session, None)
 
 
-async def test_get_current_learner_resolves_real_session_cookie_via_learning_identity(
-    db_session,
+async def test_signed_session_cookie_acts_as_the_linked_learner(
+    anonymous_client, db_session
 ):
     user = User()
     db_session.add(user)
@@ -297,28 +257,36 @@ async def test_get_current_learner_resolves_real_session_cookie_via_learning_ide
     learning_identity = LearningIdentity(user_id=user.id)
     db_session.add(learning_identity)
     await db_session.commit()
+    learner_id = learning_identity.learner_id
 
-    request = _make_request(f"{AUTH_SESSION_COOKIE}={sign_session(user.id)}")
-    response = Response()
+    anonymous_client.cookies.set(AUTH_SESSION_COOKIE, sign_session(user.id))
+    response = await anonymous_client.post("/sessions")
 
-    learner_id = await get_current_learner(request, response, session=db_session)
+    assert response.status_code == 201
+    assert LEARNER_ID_COOKIE not in response.cookies
+    created = await db_session.get(Session, UUID(response.json()["id"]))
+    assert created is not None
+    assert created.learner_id == learner_id
 
-    assert learner_id == learning_identity.learner_id
 
+async def test_dev_learner_cookie_is_minted_private_and_reused(anonymous_client):
+    response = await anonymous_client.post("/sessions")
 
-async def test_get_current_learner_dev_cookie_fallback_is_unchanged(db_session):
-    """Regression guard: with no real session cookie, the exact pre-auth
-    dev-cookie behavior still runs -- unlike every other test in this
-    suite (which goes through app_client's override), this one calls the
-    real function directly, so it is the test that actually protects
-    tier (b)."""
+    assert response.status_code == 201
+    set_cookie = response.headers["set-cookie"].lower()
+    assert set_cookie.startswith(f"{LEARNER_ID_COOKIE}=")
+    assert "max-age=2592000" in set_cookie
+    assert "httponly" in set_cookie
+    assert "samesite=lax" in set_cookie
 
-    request = _make_request()
-    response = Response()
+    session_id = response.json()["id"]
+    learner_cookie = response.cookies[LEARNER_ID_COOKIE]
 
-    learner_id = await get_current_learner(request, response, session=db_session)
+    anonymous_client.cookies.clear()
+    stranger = await anonymous_client.get(f"/sessions/{session_id}/report")
+    assert stranger.status_code == 404
 
-    assert isinstance(learner_id, UUID)
-    set_cookie = response.headers.get("set-cookie", "")
-    assert LEARNER_ID_COOKIE in set_cookie
-    assert str(learner_id) in set_cookie
+    anonymous_client.cookies.clear()
+    anonymous_client.cookies.set(LEARNER_ID_COOKIE, learner_cookie)
+    owner = await anonymous_client.get(f"/sessions/{session_id}/report")
+    assert owner.status_code == 200

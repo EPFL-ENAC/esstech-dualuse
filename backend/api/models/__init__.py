@@ -7,7 +7,6 @@ from api.models.case import (
     CounterCaseLink,
 )
 from api.models.contrast import ContrastEntry
-from api.models.dummy import Item
 from api.models.feedback import FeedbackRecord
 from api.models.intake import SessionIntake
 from api.models.researcher import (
@@ -32,7 +31,6 @@ __all__ = [
     "ContrastEntry",
     "CounterCaseLink",
     "FeedbackRecord",
-    "Item",
     "LearningIdentity",
     "ResearcherPrediction",
     "Session",

@@ -9,10 +9,10 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-# These must be set before any test module imports `api.config`, so the
-# settings singleton is built with a valid API key (which is required).
+# Set before anything imports `api.config`, whose singleton is built at import
+# time: the auth tests need Google sign-in configured whatever the developer's
+# .env holds (process env vars outrank the .env file).
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
-os.environ.setdefault("OPENAI_API_KEY", "test-openai-key-for-testing-only")
 os.environ.setdefault("GOOGLE_CLIENT_ID", "test-google-client-id-for-testing-only")
 os.environ.setdefault(
     "GOOGLE_CLIENT_SECRET", "test-google-client-secret-for-testing-only"
@@ -24,11 +24,6 @@ import api.models  # noqa: E402, F401
 
 @pytest.fixture
 async def client():
-    from fastapi_cache import FastAPICache
-    from fastapi_cache.backends.inmemory import InMemoryBackend
-
-    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache-test")
-
     from api.main import app
 
     transport = ASGITransport(app=app)
@@ -91,11 +86,6 @@ async def app_client(db_session, learner):
     uncommitted setup rows -- the test then fails looking like missing data
     rather than like the rollback it actually is.
     """
-
-    from fastapi_cache import FastAPICache
-    from fastapi_cache.backends.inmemory import InMemoryBackend
-
-    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache-test")
 
     from api.db import get_db_session
     from api.dependencies import get_current_learner

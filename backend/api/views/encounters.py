@@ -1,10 +1,9 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.db import get_db_session
-from api.dependencies import get_current_learner
+from api.dependencies import get_student_encounter
+from api.models import CaseEncounter
 from api.services.contrast import (
     ContrastResponse,
     ContrastSubmit,
@@ -19,7 +18,7 @@ from api.services.encounters import (
 )
 from api.services.feedback import RevealResponse, reveal_encounter
 
-router = APIRouter()
+router = APIRouter(tags=["Encounters"])
 
 
 @router.post(
@@ -31,18 +30,15 @@ router = APIRouter()
         "Store the learner's framing answers and their chosen pattern and "
         "gate for this encounter."
     ),
-    tags=["Encounters"],
 )
 async def post_commitment(
-    encounter_id: UUID,
     body: CommitmentCreate,
+    encounter: CaseEncounter = Depends(get_student_encounter),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> CommitmentCreated:
     return await create_commitment(
         session,
-        encounter_id=encounter_id,
-        learner_id=learner_id,
+        encounter=encounter,
         pattern=body.pattern,
         gate=body.gate,
         framing_answers=body.framing_answers,
@@ -58,16 +54,12 @@ async def post_commitment(
         "learner's commitment compared. Computed once, then returned "
         "unchanged on every later call."
     ),
-    tags=["Encounters"],
 )
 async def post_reveal(
-    encounter_id: UUID,
+    encounter: CaseEncounter = Depends(get_student_encounter),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> RevealResponse:
-    return await reveal_encounter(
-        session, encounter_id=encounter_id, learner_id=learner_id
-    )
+    return await reveal_encounter(session, encounter=encounter)
 
 
 @router.get(
@@ -79,16 +71,12 @@ async def post_reveal(
         "if so, the gate lever and responsibility-posture contrast to show "
         "before the reflection question."
     ),
-    tags=["Encounters"],
 )
 async def get_counter_case(
-    encounter_id: UUID,
+    encounter: CaseEncounter = Depends(get_student_encounter),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> CounterCaseResponse:
-    return await look_up_counter_case(
-        session, encounter_id=encounter_id, learner_id=learner_id
-    )
+    return await look_up_counter_case(session, encounter=encounter)
 
 
 @router.post(
@@ -101,17 +89,14 @@ async def get_counter_case(
         "counter-case id are derived server-side, never trusted from the "
         "request. Computed once, then returned unchanged on every later call."
     ),
-    tags=["Encounters"],
 )
 async def post_contrast(
-    encounter_id: UUID,
     body: ContrastSubmit,
+    encounter: CaseEncounter = Depends(get_student_encounter),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> ContrastResponse:
     return await submit_contrast(
         session,
-        encounter_id=encounter_id,
-        learner_id=learner_id,
+        encounter=encounter,
         learner_response=body.learner_response,
     )

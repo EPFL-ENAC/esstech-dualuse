@@ -7,12 +7,14 @@ E = TypeVar("E", bound=Enum)
 
 
 def sa_enum(enum_cls: type[E]) -> SAEnum:
-    """Build a VARCHAR+CHECK column type storing enum `.value`s (not `.name`s).
+    """Build a plain VARCHAR column type storing enum `.value`s (not `.name`s).
 
-    SQLAlchemy's `Enum` stores member *names* by default, which would put
-    "HARM" in the database for `CaseType.HARM = "harm"`. `values_callable`
-    makes it store `.value` instead, matching what the API and any direct
-    SQL against the database will actually see.
+    SQLAlchemy's `Enum` stores member *names* by default ("HARM" for
+    `CaseType.HARM = "harm"`); `values_callable` makes it store `.value`.
+    With `native_enum=False` and no `create_constraint=True`, SQLAlchemy 2.0
+    emits no CHECK constraint, so allowed values are enforced only in
+    Python (the one exception is the CHECK on
+    comparison_set_case.inclusion_reason, declared on ComparisonSetCase).
     """
 
     return SAEnum(
@@ -121,8 +123,7 @@ class ContrastType(str, Enum):
 class InclusionReason(str, Enum):
     """Why a case was included in a session's comparison set.
 
-    Derived server-side by build_comparison_set, never supplied by the
-    client -- the same reasoning as ContrastType above.
+    Derived server-side, never supplied by the client.
     """
 
     SHARED_FUNCTION = "shared_function"
@@ -132,12 +133,9 @@ class InclusionReason(str, Enum):
 class UserStatus(str, Enum):
     """A User's account status.
 
-    Just ACTIVE for now -- no deactivation/suspension flow exists
-    anywhere in this app yet, so more states would be speculative.
-    Extending this later (e.g. DISABLED, SUSPENDED) costs nothing on
-    existing rows: sa_enum() is VARCHAR+CHECK, not a native Postgres
-    enum, so widening the CHECK constraint is a new migration, never an
-    ALTER TYPE that touches data already there.
+    Just ACTIVE: no deactivation/suspension flow exists. The column is a
+    plain VARCHAR with no database-level CHECK (see sa_enum), so adding a
+    member needs no migration and never an ALTER TYPE.
     """
 
     ACTIVE = "active"
@@ -146,9 +144,8 @@ class UserStatus(str, Enum):
 class AuthProvider(str, Enum):
     """Which login provider an AuthIdentity came from.
 
-    Just GOOGLE for now. Adding EPFL_SSO/MAGIC_LINK later is the same
-    CHECK-constraint-widening migration as UserStatus above -- existing
-    AuthIdentity rows are never touched.
+    Just GOOGLE for now. Like UserStatus, the column is a plain VARCHAR
+    with no database-level CHECK, so adding a provider needs no migration.
     """
 
     GOOGLE = "google"

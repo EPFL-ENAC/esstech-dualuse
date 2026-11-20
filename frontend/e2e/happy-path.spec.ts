@@ -1,11 +1,8 @@
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Page, Response } from '@playwright/test';
 
-import {
-  COMPREHENSION_CHECK,
-  DIAGNOSTIC_ITEMS,
-  MICRO_PRIMER,
-} from '../src/content/intake';
+import { COMPREHENSION_CHECK, DIAGNOSTIC_ITEMS, MICRO_PRIMER } from '../src/content/intake';
+import type { IntakeItem } from '../src/content/intake';
 
 /**
  * The full learner happy path, in a real browser.
@@ -21,8 +18,10 @@ import {
  *     main path must not reach the browser before the reveal
  *   - reveal staying compute-or-fetch when the browser asks a second time
  *
- * Correct-answer hints are an intentional part of the learner-facing UI, but
- * they are guidance rather than a gate: a learner may continue after errors.
+ * The intake answer key is never shipped to the browser: "Check answers"
+ * submits, the response carries the correct options, and the page shows them
+ * with the answers locked. They are guidance rather than a gate: a learner may
+ * continue after errors.
  */
 
 /** Pick the first option of every diagnostic item, including likely errors. */
@@ -34,31 +33,59 @@ async function answerDiagnostic(page: Page): Promise<void> {
   }
 }
 
-/** Quasar selects are not native <select>: open the menu, then click an option. */
-async function chooseFromSelect(
+/** Wait for the POST to an intake endpoint that `action` triggers. */
+async function submitIntakeStep(
   page: Page,
-  label: string,
-  optionText: RegExp,
-  exact = false,
-): Promise<void> {
-  await page.getByRole('combobox', { name: label, exact }).first().click();
+  endpoint: 'diagnostic' | 'comprehension',
+  action: () => Promise<void>,
+): Promise<Response> {
+  const response = page.waitForResponse(
+    (candidate) =>
+      candidate.request().method() === 'POST' && candidate.url().endsWith(`/intake/${endpoint}`),
+  );
+  await action();
+  return response;
+}
+
+function optionLabel(item: IntakeItem, value: string | undefined): string {
+  const option = item.options.find((candidate) => candidate.value === value);
+  expect(option, `item ${item.id} has no option ${value}`).toBeDefined();
+  return option!.label;
+}
+
+/** Quasar selects are not native <select>: open the menu, then click an option. */
+async function chooseFromSelect(page: Page, label: string, optionText: RegExp): Promise<void> {
+  await page.getByRole('combobox', { name: label }).first().click();
   await page.getByRole('option').filter({ hasText: optionText }).first().click();
 }
 
 test('a learner completes intake, commits to a case, and the reveal never changes', async ({
   page,
 }) => {
-  // --- M1 route choice, then M0 intake, entered through the real front
-  // door, not the dev bypass ---
+  // --- route choice, then intake, through the real front door ---
   await page.goto('/');
-  await page.getByRole('link', { name: 'Start session' }).click();
+  await page.getByRole('link', { name: 'Try the tool' }).click();
   await page.getByRole('button', { name: 'Continue as a student' }).click();
   await expect(page.getByText('Before you begin')).toBeVisible();
 
   await answerDiagnostic(page);
-  await page.getByRole('button', { name: 'Check answers' }).click();
+  const diagnosticResponse = await submitIntakeStep(page, 'diagnostic', () =>
+    page.getByRole('button', { name: 'Check answers' }).click(),
+  );
+  const { correct_answers: diagnosticKey } = (await diagnosticResponse.json()) as {
+    correct_answers: string[];
+  };
   await expect(page.getByText('A hint before you continue')).toBeVisible();
-  await expect(page.getByText(/continue when you are ready/i)).toBeVisible();
+  const hints = page.locator('.intake-hint__answers');
+  for (const [index, item] of DIAGNOSTIC_ITEMS.entries()) {
+    await expect(
+      hints.getByText(optionLabel(item, diagnosticKey[index]), { exact: true }),
+    ).toBeVisible();
+  }
+  // Submitted answers are locked.
+  await expect(
+    page.getByRole('radio', { name: DIAGNOSTIC_ITEMS[0]!.options[0]!.label, exact: true }),
+  ).toBeDisabled();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 
   // The primer appears only below the score threshold, which depends on an
@@ -74,11 +101,26 @@ test('a learner completes intake, commits to a case, and the reveal never change
   await expect(comprehensionTitle).toBeVisible();
   const firstOption = COMPREHENSION_CHECK.options[0];
   expect(firstOption).toBeDefined();
-  await page.getByRole('radio', { name: firstOption!.label, exact: true }).check();
-  await page.getByRole('button', { name: 'Check answers' }).click();
+  const firstRadio = page.getByRole('radio', { name: firstOption!.label, exact: true });
+  await firstRadio.check();
+  const comprehensionResponse = await submitIntakeStep(page, 'comprehension', () =>
+    page.getByRole('button', { name: 'Check answers' }).click(),
+  );
+  const { correct, correct_answer: comprehensionKey } = (await comprehensionResponse.json()) as {
+    correct: boolean;
+    correct_answer: string;
+  };
+  await expect(firstRadio).toBeDisabled();
+  if (correct) {
+    await expect(page.getByText('Correct. You can continue.')).toBeVisible();
+  } else {
+    await expect(page.getByText('Take another look')).toBeVisible();
+    await expect(
+      page.getByText(`The correct answer: ${optionLabel(COMPREHENSION_CHECK, comprehensionKey)}`),
+    ).toBeVisible();
+  }
 
   const doneTitle = page.getByText('You are set up');
-  await expect(page.getByText('Take another look')).toBeVisible();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(doneTitle).toBeVisible();
   await page.getByRole('button', { name: 'Choose a case' }).click();
@@ -88,7 +130,6 @@ test('a learner completes intake, commits to a case, and the reveal never change
   await expect(page.getByText('Session in progress')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start a session' })).toHaveCount(0);
 
-  // --- pick a case, through the confirmation dialog ---
   const firstCase = page.getByRole('button', { name: 'Work on this case' }).first();
   await expect(firstCase).toBeVisible();
   await firstCase.click();
@@ -104,23 +145,17 @@ test('a learner completes intake, commits to a case, and the reveal never change
   expect(preRevealHtml).not.toContain('main_path_pattern');
   expect(preRevealHtml).not.toContain('full_narrative');
 
-  // --- framing answers, then the commitment ---
   const textareas = page.locator('textarea');
   const textareaCount = await textareas.count();
   for (let index = 0; index < textareaCount; index += 1) {
     await textareas.nth(index).fill(`E2E answer ${index + 1}`);
   }
-  await chooseFromSelect(page, 'At which decision gate', /^G1/);
   await chooseFromSelect(page, 'Pattern', /^A —/);
-  // Plain 'Decision gate' would also match the framing question above
-  // ("At which decision gate does this choice occur?"), whose accessible
-  // name contains it as a substring; exact-match the commitment select.
-  await chooseFromSelect(page, 'Decision gate', /^G1/, true);
+  await chooseFromSelect(page, 'Decision gate', /^G1/);
 
   await page.getByRole('button', { name: 'Commit', exact: true }).click();
   await expect(page.getByText('Commitment saved. You can now reveal the case.')).toBeVisible();
 
-  // --- reveal ---
   await page.getByRole('button', { name: 'Reveal the case' }).click();
   const revealedAt = page.getByText(/^Revealed at /);
   await expect(revealedAt).toBeVisible();
@@ -128,7 +163,6 @@ test('a learner completes intake, commits to a case, and the reveal never change
   const firstTimestamp = await revealedAt.innerText();
   const firstVerdict = await page.locator('.reveal-panel .text-h6').innerText();
 
-  // --- reload, then ask the server again ---
   await page.reload();
 
   // The store is persisted, so the panel comes back from local state alone.

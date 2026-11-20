@@ -1,14 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+import type { CounterCaseResponse } from 'src/api/contrast';
 import type {
   CommitmentCreated,
   ContrastResponse,
-  CounterCaseResponse,
   EncounterCreated,
   RevealResponse,
 } from 'src/api/student';
 import type { SessionCreated } from 'src/api/sessions';
+import { useIntakeStore } from 'stores/intake';
 
 /**
  * Flow state for the Student/Individual path.
@@ -29,16 +30,13 @@ export const useStudentStore = defineStore(
     const contrast = ref<ContrastResponse | null>(null);
 
     function setSession(value: SessionCreated): void {
-      session.value = value;
       clearEncounter();
+      session.value = value;
     }
 
     function setEncounter(value: EncounterCreated): void {
+      clearEncounter();
       encounter.value = value;
-      commitment.value = null;
-      reveal.value = null;
-      counterCase.value = null;
-      contrast.value = null;
     }
 
     function setCommitment(value: CommitmentCreated): void {
@@ -65,9 +63,11 @@ export const useStudentStore = defineStore(
       contrast.value = null;
     }
 
-    function reset(): void {
+    /** Abandon the whole Student route, intake included, to begin again. */
+    function startOver(): void {
       session.value = null;
       clearEncounter();
+      useIntakeStore().reset();
     }
 
     return {
@@ -84,7 +84,7 @@ export const useStudentStore = defineStore(
       setCounterCase,
       setContrast,
       clearEncounter,
-      reset,
+      startOver,
     };
   },
   { persist: true },

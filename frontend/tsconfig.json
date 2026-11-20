@@ -3,9 +3,6 @@
   "exclude": [
     "./dist",
     "./node_modules",
-    "./src-capacitor",
-    "./src-cordova",
-    "./quasar.config.*.temporary.compiled*",
-    "./third-party"
+    "./quasar.config.*.temporary.compiled*"
   ]
 }

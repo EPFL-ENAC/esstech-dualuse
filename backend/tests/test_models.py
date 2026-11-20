@@ -25,7 +25,6 @@ from api.models.enums import (
     Pattern,
     SessionMode,
     SessionRoute,
-    UserStatus,
 )
 
 
@@ -142,8 +141,6 @@ async def test_enum_column_stores_lowercase_value_not_member_name(db_session):
     raw_case_type = result.one()[0]
 
     assert raw_case_type == "harm"
-    assert raw_case_type == CaseType.HARM.value
-    assert raw_case_type != CaseType.HARM.name
 
 
 async def test_commitment_sequence_no_unique_per_encounter(db_session):
@@ -210,12 +207,8 @@ async def test_contrast_entry_unique_per_encounter(db_session):
         await db_session.commit()
 
 
-def _make_user() -> User:
-    return User()
-
-
 async def test_auth_identity_unique_per_provider_and_subject(db_session):
-    user = _make_user()
+    user = User()
     db_session.add(user)
     await db_session.flush()
 
@@ -242,7 +235,7 @@ async def test_auth_identity_unique_per_provider_and_subject(db_session):
 
 
 async def test_learning_identity_unique_per_user(db_session):
-    user = _make_user()
+    user = User()
     db_session.add(user)
     await db_session.flush()
 
@@ -255,10 +248,9 @@ async def test_learning_identity_unique_per_user(db_session):
 
 
 async def test_user_status_stores_lowercase_value_not_member_name(db_session):
-    """Regression guard for sa_enum()'s values_callable, same reasoning as
-    test_enum_column_stores_lowercase_value_not_member_name above."""
+    """Same raw-column check as for Case.case_type, on User.status."""
 
-    user = _make_user()
+    user = User()
     db_session.add(user)
     await db_session.commit()
 
@@ -266,5 +258,3 @@ async def test_user_status_stores_lowercase_value_not_member_name(db_session):
     raw_status = result.one()[0]
 
     assert raw_status == "active"
-    assert raw_status == UserStatus.ACTIVE.value
-    assert raw_status != UserStatus.ACTIVE.name

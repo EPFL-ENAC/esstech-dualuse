@@ -1,39 +1,16 @@
 /**
  * Typed client for the Student/Individual endpoints.
  *
- * The types below mirror the backend's response models exactly. Nothing here
- * carries a learner identifier: the backend derives the learner from its own
- * development cookie, which `apiFetch` forwards.
- *
- * Session creation itself lives in api/sessions.ts, not here -- it is not
- * Student-specific.
+ * Nothing here carries a learner identifier: the backend derives the learner
+ * from its session cookie, which `apiFetch` forwards.
  */
-import { apiFetch } from 'boot/api';
+import { apiFetch, postJson } from 'boot/api';
+import type { CounterCaseResponse } from 'src/api/contrast';
 import type { ScaffoldingDepth } from 'src/api/intake';
-import type { Domain } from 'src/api/researcher';
+import type { ContrastType, Domain, Gate, Pattern } from 'src/api/taxonomy';
 
-export const PATTERNS = [
-  'A',
-  'B',
-  'C',
-  'D',
-  'E',
-  'F',
-  'G',
-  'H',
-  'I',
-  'J',
-  'K',
-  'L',
-  'M',
-  'N',
-  'O',
-  'P',
-] as const;
-export type Pattern = (typeof PATTERNS)[number];
-
-export const GATES = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6'] as const;
-export type Gate = (typeof GATES)[number];
+/** Mirrors MAX_ENCOUNTERS_PER_SESSION in backend api/models/session.py, which enforces it. */
+export const CASES_PER_SESSION = 3;
 
 export type MatchResult = 'match' | 'partial_match' | 'mismatch';
 export type CaseType = 'harm' | 'counter_case';
@@ -92,20 +69,6 @@ export interface RevealResponse {
   case: RevealedCase;
 }
 
-export type ContrastType = 'twin_counter_case' | 'open_area';
-
-/** The counter-case fields shown before the WHO reflection question. */
-export interface CounterCaseInfo {
-  counter_case_id: string;
-  gate_lever: Gate;
-  responsibility_posture_contrast: string;
-}
-
-export interface CounterCaseResponse {
-  has_counter_case: boolean;
-  counter_case: CounterCaseInfo | null;
-}
-
 export interface ContrastResponse {
   contrast_entry_id: string;
   contrast_type: ContrastType;
@@ -139,7 +102,6 @@ export interface SessionReportBody {
   decision_points_considered: Gate[];
   patterns_selected: Pattern[];
   match_result_counts: MatchResultCounts;
-  counter_case_reflections_completed: number;
   scaffolding_depth?: ScaffoldingDepth;
   /** Absent, not null, when no encounter in the session has a counter-case. */
   suggested_next_focus?: Gate;
@@ -148,14 +110,6 @@ export interface SessionReportBody {
 export interface SessionReport {
   has_completed_cases: boolean;
   report?: SessionReportBody;
-}
-
-function postJson<T>(path: string, body: unknown): Promise<T> {
-  return apiFetch<T>(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
 }
 
 export function listCandidateCases(): Promise<CaseCandidate[]> {
@@ -183,21 +137,15 @@ export function revealEncounter(encounterId: string): Promise<RevealResponse> {
   return apiFetch<RevealResponse>(`/encounters/${encounterId}/reveal`, { method: 'POST' });
 }
 
-/**
- * Look up the encounter's counter-case, if any.
- *
- * Never a 404 for "no counter-case" -- that's a valid corpus state reported
- * as `has_counter_case: false`, not an error.
- */
+/** Look up the encounter's counter-case, if any. */
 export function getCounterCase(encounterId: string): Promise<CounterCaseResponse> {
   return apiFetch<CounterCaseResponse>(`/encounters/${encounterId}/counter-case`);
 }
 
 /**
- * Submit the post-reveal contrast reflection.
- *
- * Safe to call repeatedly, the same way revealEncounter is: the backend
- * derives contrast_type itself and returns the stored entry afterwards.
+ * Submit the post-reveal contrast reflection. Safe to call repeatedly: the
+ * backend derives contrast_type itself and returns the stored entry
+ * afterwards.
  */
 export function submitContrast(
   encounterId: string,
@@ -208,7 +156,6 @@ export function submitContrast(
   });
 }
 
-/** Fetch the session's M6/M7 self-reflection debrief and report. */
 export function getSessionReport(sessionId: string): Promise<SessionReport> {
   return apiFetch<SessionReport>(`/sessions/${sessionId}/report`);
 }

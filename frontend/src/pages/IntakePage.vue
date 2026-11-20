@@ -6,18 +6,14 @@
         <div class="text-caption text-grey-7">{{ t('intakeIntro') }}</div>
       </div>
 
-      <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
-        <template #avatar><q-icon name="warning" color="negative" /></template>
-        <div class="text-weight-medium">{{ t('errorTitle') }}</div>
-        <div>{{ errorMessage }}</div>
+      <ErrorBanner v-if="errorMessage" :message="errorMessage">
         <template #action>
           <q-btn flat :label="t('studentReset')" @click="startOver" />
         </template>
-      </q-banner>
+      </ErrorBanner>
 
       <q-inner-loading :showing="loading" />
 
-      <!-- Step 1: the three diagnostic items. -->
       <q-card v-if="store.step === 'diagnostic'" flat bordered>
         <q-card-section>
           <div class="text-subtitle2 q-mb-md">{{ t('intakeDiagnosticTitle') }}</div>
@@ -27,7 +23,8 @@
               <div class="text-body1 q-mb-sm">{{ item.prompt }}</div>
               <q-option-group
                 :model-value="store.diagnosticAnswers[item.id] ?? null"
-                :options="toOptions(item)"
+                :options="[...item.options]"
+                :disable="store.diagnostic !== null"
                 type="radio"
                 @update:model-value="(value) => store.setDiagnosticAnswer(item.id, value)"
               />
@@ -35,13 +32,13 @@
           </div>
 
           <q-banner
-            v-if="diagnosticChecked"
+            v-if="store.diagnostic"
             class="intake-hint q-mt-lg"
-            :class="diagnosticPassed ? 'intake-hint--success' : 'intake-hint--review'"
+            :class="store.diagnosticPassed ? 'intake-hint--success' : 'intake-hint--review'"
             rounded
           >
             <template #avatar>
-              <q-icon :name="diagnosticPassed ? 'check_circle' : 'tips_and_updates'" />
+              <q-icon :name="store.diagnosticPassed ? 'check_circle' : 'tips_and_updates'" />
             </template>
             <div class="text-weight-bold">{{ t('intakeAnswerHintTitle') }}</div>
             <div class="q-mt-xs">{{ t('intakeAnswerHintIntro') }}</div>
@@ -49,32 +46,31 @@
               <li v-for="answer in correctAnswerHints" :key="answer">{{ answer }}</li>
             </ul>
             <div class="text-weight-medium">
-              {{ diagnosticPassed ? t('intakeAnswersCorrect') : t('intakeAnswersRetry') }}
+              {{ store.diagnosticPassed ? t('intakeAnswersCorrect') : t('intakeAnswersReview') }}
             </div>
           </q-banner>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn
-            v-if="!diagnosticChecked"
+            v-if="!store.diagnostic"
             color="primary"
             unelevated
-            :label="t('intakeCheckAnswers')"
+            :label="submitting ? t('intakeSubmitting') : t('intakeCheckAnswers')"
+            :loading="submitting"
             :disable="!diagnosticComplete"
-            @click="diagnosticChecked = true"
+            @click="sendDiagnostic"
           />
           <q-btn
             v-else
             color="primary"
             unelevated
-            :label="submitting ? t('intakeSubmitting') : t('intakeContinue')"
-            :loading="submitting"
-            @click="sendDiagnostic"
+            :label="t('intakeContinue')"
+            @click="store.advance()"
           />
         </q-card-actions>
       </q-card>
 
-      <!-- Step 2: the primer, shown only below the threshold. -->
       <q-card v-else-if="store.step === 'primer'" flat bordered>
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ MICRO_PRIMER.title }}</div>
@@ -86,65 +82,63 @@
             color="primary"
             unelevated
             :label="t('intakePrimerContinue')"
-            @click="store.setStep('comprehension')"
+            @click="store.advance()"
           />
         </q-card-actions>
       </q-card>
 
-      <!-- Step 3: the single comprehension check. -->
       <q-card v-else-if="store.step === 'comprehension'" flat bordered>
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ t('intakeComprehensionTitle') }}</div>
           <div class="text-body1 q-mb-sm">{{ COMPREHENSION_CHECK.prompt }}</div>
           <q-option-group
-            v-model="comprehensionChoice"
-            :options="toOptions(COMPREHENSION_CHECK)"
+            :model-value="store.comprehensionAnswer"
+            :options="[...COMPREHENSION_CHECK.options]"
+            :disable="store.comprehension !== null"
             type="radio"
+            @update:model-value="(value) => store.setComprehensionAnswer(value)"
           />
 
-          <q-banner
-            v-if="comprehensionChecked && !comprehensionPassed"
-            class="intake-hint intake-hint--review q-mt-lg"
-            rounded
-          >
-            <template #avatar><q-icon name="tips_and_updates" /></template>
-            <div class="text-weight-bold">{{ TARGETED_CORRECTION.title }}</div>
-            <div class="q-mt-xs">{{ TARGETED_CORRECTION.body }}</div>
-          </q-banner>
+          <template v-if="store.comprehension">
+            <q-banner
+              v-if="store.comprehension.correct"
+              class="intake-hint intake-hint--success q-mt-lg"
+              rounded
+            >
+              <template #avatar><q-icon name="check_circle" /></template>
+              <div class="text-weight-medium">{{ t('intakeComprehensionCorrect') }}</div>
+            </q-banner>
+            <q-banner v-else class="intake-hint intake-hint--review q-mt-lg" rounded>
+              <template #avatar><q-icon name="tips_and_updates" /></template>
+              <div class="text-weight-bold">{{ TARGETED_CORRECTION.title }}</div>
+              <div class="q-mt-xs">{{ TARGETED_CORRECTION.body }}</div>
+              <div class="q-mt-sm text-weight-medium">
+                {{ t('intakeComprehensionCorrectAnswer', { answer: comprehensionCorrectLabel }) }}
+              </div>
+            </q-banner>
+          </template>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn
+            v-if="!store.comprehension"
             color="primary"
             unelevated
             :label="submitting ? t('intakeSubmitting') : t('intakeCheckAnswers')"
             :loading="submitting"
-            :disable="comprehensionChoice === null"
+            :disable="store.comprehensionAnswer === null"
             @click="sendComprehension"
           />
-        </q-card-actions>
-      </q-card>
-
-      <!-- Recovery for sessions completed under the previous one-attempt flow. -->
-      <q-card v-else-if="store.step === 'correction'" flat bordered>
-        <q-card-section class="bg-orange-1">
-          <div class="text-subtitle1">{{ TARGETED_CORRECTION.title }}</div>
-        </q-card-section>
-        <q-card-section>
-          <div class="text-body1 intake-page__prose">{{ TARGETED_CORRECTION.body }}</div>
-        </q-card-section>
-
-        <q-card-actions align="right">
           <q-btn
+            v-else
             color="primary"
             unelevated
             :label="t('intakeContinue')"
-            @click="store.setStep('done')"
+            @click="store.advance()"
           />
         </q-card-actions>
       </q-card>
 
-      <!-- Step 5: done. -->
       <q-card v-else flat bordered>
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">{{ t('intakeDoneTitle') }}</div>
@@ -170,13 +164,12 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import { ApiError } from 'boot/api';
+import ErrorBanner from 'components/ErrorBanner.vue';
+import { isNotFound, useErrorMessage } from 'src/composables/useApiError';
 import { getIntake, submitComprehension, submitDiagnostic } from 'src/api/intake';
 import { createSession } from 'src/api/sessions';
 import {
   COMPREHENSION_CHECK,
-  COMPREHENSION_CORRECT_ANSWER,
-  DIAGNOSTIC_CORRECT_ANSWERS,
   DIAGNOSTIC_ITEMS,
   MICRO_PRIMER,
   TARGETED_CORRECTION,
@@ -192,52 +185,30 @@ defineOptions({
 const { t } = useI18n();
 const router = useRouter();
 const store = useIntakeStore();
-// The session lives in the student store because the Student/Individual path
-// reads it from there once this flow hands off.
 const studentStore = useStudentStore();
+const { errorMessage, report } = useErrorMessage();
 
 const loading = ref(false);
 const submitting = ref(false);
 const starting = ref(false);
-const errorMessage = ref('');
-const diagnosticChecked = ref(false);
-const comprehensionChecked = ref(false);
-
-const comprehensionChoice = ref<string | null>(store.comprehensionAnswer);
 
 const diagnosticComplete = computed(() =>
   DIAGNOSTIC_ITEMS.every((item) => store.diagnosticAnswers[item.id] !== undefined),
 );
 
-const diagnosticPassed = computed(() =>
-  DIAGNOSTIC_ITEMS.every(
-    (item) => store.diagnosticAnswers[item.id] === DIAGNOSTIC_CORRECT_ANSWERS[item.id],
+function optionLabel(item: IntakeItem, value: string | undefined): string {
+  return item.options.find((option) => option.value === value)?.label ?? '';
+}
+
+const correctAnswerHints = computed(() =>
+  DIAGNOSTIC_ITEMS.map((item, index) =>
+    optionLabel(item, store.diagnostic?.correct_answers[index]),
   ),
 );
 
-const correctAnswerHints = computed(() =>
-  DIAGNOSTIC_ITEMS.map((item) => {
-    const correctValue = DIAGNOSTIC_CORRECT_ANSWERS[item.id];
-    return item.options.find((option) => option.value === correctValue)?.label ?? '';
-  }),
+const comprehensionCorrectLabel = computed(() =>
+  optionLabel(COMPREHENSION_CHECK, store.comprehension?.correct_answer),
 );
-
-const comprehensionPassed = computed(
-  () => comprehensionChoice.value === COMPREHENSION_CORRECT_ANSWER,
-);
-
-function toOptions(item: IntakeItem) {
-  return item.options.map((option) => ({ label: option.label, value: option.value }));
-}
-
-function describe(error: unknown): string {
-  return error instanceof ApiError ? error.detail : t('errorUnexpected');
-}
-
-/** Answers in item order: the API matches them to items by position. */
-function orderedAnswers(): string[] {
-  return DIAGNOSTIC_ITEMS.map((item) => store.diagnosticAnswers[item.id] ?? '');
-}
 
 async function ensureSession(): Promise<string | null> {
   if (studentStore.session) {
@@ -245,17 +216,18 @@ async function ensureSession(): Promise<string | null> {
   }
 
   try {
-    const created = await createSession();
+    const created = await createSession('student');
     studentStore.setSession(created);
     return created.id;
   } catch (error) {
-    errorMessage.value = describe(error);
+    report(error);
     return null;
   }
 }
 
 async function sendDiagnostic() {
-  const answers = orderedAnswers();
+  // Answers in item order: the API matches them to items by position.
+  const answers = DIAGNOSTIC_ITEMS.map((item) => store.diagnosticAnswers[item.id] ?? '');
   const sessionId = await ensureSession();
   if (sessionId === null) {
     return;
@@ -266,7 +238,7 @@ async function sendDiagnostic() {
   try {
     store.setDiagnostic(await submitDiagnostic(sessionId, answers));
   } catch (error) {
-    errorMessage.value = describe(error);
+    report(error);
   } finally {
     submitting.value = false;
   }
@@ -274,20 +246,17 @@ async function sendDiagnostic() {
 
 async function sendComprehension() {
   const sessionId = studentStore.session?.id;
-  const answer = comprehensionChoice.value;
+  const answer = store.comprehensionAnswer;
   if (sessionId === undefined || answer === null) {
     return;
   }
 
-  comprehensionChecked.value = true;
-
   submitting.value = true;
   errorMessage.value = '';
   try {
-    store.comprehensionAnswer = answer;
     store.setComprehension(await submitComprehension(sessionId, answer));
   } catch (error) {
-    errorMessage.value = describe(error);
+    report(error);
   } finally {
     submitting.value = false;
   }
@@ -305,11 +274,7 @@ async function goToStudentFlow() {
 }
 
 function startOver() {
-  store.reset();
-  studentStore.reset();
-  comprehensionChoice.value = null;
-  diagnosticChecked.value = false;
-  comprehensionChecked.value = false;
+  studentStore.startOver();
   errorMessage.value = '';
 }
 
@@ -325,12 +290,10 @@ onMounted(async () => {
   loading.value = true;
   try {
     store.hydrate(await getIntake(sessionId));
-    comprehensionChoice.value = store.comprehensionAnswer;
   } catch (error) {
-    // A 404 is the ordinary "no intake yet" case for a session that was
-    // started but never got past the first step, so it is not surfaced.
-    if (!(error instanceof ApiError) || error.status !== 404) {
-      errorMessage.value = describe(error);
+    // A 404 just means this session has no intake yet.
+    if (!isNotFound(error)) {
+      report(error);
     }
   } finally {
     loading.value = false;

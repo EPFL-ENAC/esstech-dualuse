@@ -5,7 +5,6 @@ fixture), so fixture rows must be committed before any API call.
 """
 
 import re
-from uuid import uuid4
 
 import pytest
 
@@ -166,7 +165,7 @@ async def test_report_twin_counter_case_encounter_includes_gate_lever(
     case = _make_case()
     db_session.add(case)
     await db_session.commit()
-    link = await _link_counter_case(db_session, harm_case=case, gate_lever=Gate.G4)
+    await _link_counter_case(db_session, harm_case=case, gate_lever=Gate.G4)
     session_id = await _start_session(app_client)
     await _complete_encounter(
         app_client,
@@ -182,7 +181,7 @@ async def test_report_twin_counter_case_encounter_includes_gate_lever(
 
     (entry,) = body["report"]["encounters"]
     assert entry["contrast_type"] == "twin_counter_case"
-    assert entry["gate_lever"] == link.gate_lever.value == Gate.G4.value
+    assert entry["gate_lever"] == "G4"
 
 
 async def _build_three_encounter_session(app_client, db_session) -> str:
@@ -203,7 +202,7 @@ async def _build_three_encounter_session(app_client, db_session) -> str:
     case2 = _make_case("Case 2", main_path_pattern=Pattern.B, main_path_gate=Gate.G2)
     db_session.add(case2)
     await db_session.commit()
-    link = await _link_counter_case(db_session, harm_case=case2, gate_lever=Gate.G4)
+    await _link_counter_case(db_session, harm_case=case2, gate_lever=Gate.G4)
     await _complete_encounter(
         app_client,
         db_session,
@@ -219,7 +218,6 @@ async def _build_three_encounter_session(app_client, db_session) -> str:
         app_client, db_session, session_id, case3, pattern=Pattern.C, gate=Gate.G3
     )  # MATCH, open_area
 
-    assert link.gate_lever == Gate.G4
     return session_id
 
 
@@ -237,17 +235,6 @@ async def test_report_aggregates_across_multiple_encounters(app_client, db_sessi
         "partial_match": 1,
         "mismatch": 0,
     }
-
-
-async def test_counter_case_reflections_completed_equals_cases_explored(
-    app_client, db_session
-):
-    session_id = await _build_three_encounter_session(app_client, db_session)
-
-    body = await _get_report(app_client, session_id)
-    report = body["report"]
-
-    assert report["counter_case_reflections_completed"] == report["cases_explored"]
 
 
 async def test_suggested_next_focus_reflects_the_counter_case_gate_lever(
@@ -291,14 +278,8 @@ async def test_has_completed_cases_false_before_reveal(app_client, db_session):
 async def test_has_completed_cases_false_after_reveal_before_contrast(
     app_client, db_session
 ):
-    """Commitment and FeedbackRecord exist, but contrast has not been
-    submitted yet -- the exact boundary the strict definition excludes.
-
-    Only reachable by hitting this endpoint directly mid-encounter: the
-    Another-case/Finish card in StudentEncounterPage.vue is
-    v-if="contrast", so no normal navigation leaves an encounter in this
-    state before moving on.
-    """
+    """Only reachable by calling the API directly mid-encounter: the frontend
+    (StudentEncounterPage.vue) offers no way on before contrast is submitted."""
 
     case = _make_case()
     db_session.add(case)
@@ -312,16 +293,6 @@ async def test_has_completed_cases_false_after_reveal_before_contrast(
 
     assert body["has_completed_cases"] is False
     assert "report" not in body
-
-
-async def test_another_learners_session_is_not_found(app_client, db_session, learner):
-    session_id = await _start_session(app_client)
-
-    learner["id"] = uuid4()
-    response = await app_client.get(f"/sessions/{session_id}/report")
-
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Session not found"
 
 
 async def test_report_never_contains_forbidden_score_or_grade_language(

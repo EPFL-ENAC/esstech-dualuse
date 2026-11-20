@@ -71,13 +71,9 @@ async def _build_comparison_set(
     cases: list[Case],
     widened_case_ids: frozenset[UUID] = frozenset(),
 ) -> None:
-    """Insert a ComparisonSet, its cases, and one tagged function per case.
-
-    Bypasses the real intake-matching flow, the same reasoning
-    test_researcher_report.py's own _build_comparison_set gives: this
-    file needs full control over which case belongs to which session's
-    set, not a real corpus match.
-    """
+    """Insert a ComparisonSet, its cases, and one tagged function per case
+    directly, to control which cases are in the set instead of relying on a
+    corpus match."""
 
     for case in cases:
         db_session.add(case)
@@ -136,10 +132,7 @@ async def test_case_detail_409s_without_a_comparison_set(app_client):
     )
 
     assert response.status_code == 409
-    assert (
-        response.json()["detail"]
-        == "Session has no comparison set to look up this case in"
-    )
+    assert response.json()["detail"] == "Session has no comparison set yet"
 
 
 async def test_case_detail_404s_for_a_case_not_in_the_comparison_set(

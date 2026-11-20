@@ -1,5 +1,4 @@
 import secrets
-from datetime import datetime, timezone
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -12,8 +11,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.config import config
 from api.models import AuthIdentity, LearningIdentity, User
+from api.models.base import utc_now
 from api.models.enums import AuthProvider
 from api.services.errors import NotConfiguredError, UpstreamAuthError, ValidationError
+from api.services.persistence import insert_once
 
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -28,39 +29,13 @@ SESSION_COOKIE_MAX_AGE = 30 * 24 * 3600
 STATE_COOKIE_MAX_AGE = 600
 
 
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def cookies_are_secure() -> bool:
-    """Whether cookies should carry the Secure attribute.
-
-    Derived from config.APP_URL's scheme -- the same signal CORS
-    (api/main.py) already keys off -- rather than a new environment
-    flag: http://localhost locally, https:// on any real deployment.
-    """
-
-    return config.APP_URL.startswith("https://")
-
-
 def google_oauth_configured() -> bool:
     """Whether this environment has real Google OAuth credentials.
 
-    False on a dev-branch deploy before GOOGLE_CLIENT_ID/
-    GOOGLE_CLIENT_SECRET are provisioned in Infisical. The routes stay
-    registered (api/main.py includes auth_router unconditionally) but
-    dormant: build_google_authorize_url and handle_google_callback both
-    check this first and raise NotConfiguredError rather than reaching
-    config.GOOGLE_CLIENT_ID/SECRET while unset.
-
-    Checks truthiness, not just `is not None`: e2e (frontend/
-    playwright.config.ts) forces this path dormant by setting both to
-    the empty string, since leaving them merely unset wouldn't be
-    enough -- Config's env_file (api/config.py) reads the developer's
-    real .env directly, independent of what the spawned process is or
-    isn't given as a real env var. An empty-string env var parses to ""
-    for a str | None field, never to None, so `is not None` alone would
-    have missed it.
+    False on a dev-branch deploy before the credentials are provisioned in
+    Infisical. Checks truthiness, not `is not None`: e2e disables OAuth by
+    setting both to "" (unsetting them would not override the developer's
+    .env), and an empty env var parses to "", never None.
     """
 
     return bool(config.GOOGLE_CLIENT_ID) and bool(config.GOOGLE_CLIENT_SECRET)
@@ -124,9 +99,8 @@ class GoogleAuthorizeUrl(BaseModel):
 def build_google_authorize_url() -> GoogleAuthorizeUrl:
     """Build Google's OAuth consent-screen URL and a fresh CSRF state.
 
-    No access_type=offline: this flow only needs identity at login time,
-    not ongoing access to Google APIs afterward, so no refresh token is
-    requested.
+    No access_type=offline: only identity at login is needed, so no
+    refresh token is requested.
     """
 
     if not google_oauth_configured():
@@ -152,14 +126,10 @@ class GoogleTokenResponse(BaseModel):
 
 
 class GoogleUserInfo(BaseModel):
-    """Google's userinfo response, validated like every other external
-    boundary in this codebase (TagSubmission, PredictionEntry, every
-    other request body) -- never read as a raw dict.
+    """Google's userinfo response.
 
-    email_verified is captured but deliberately not used to gate
-    anything: provider_subject is the only identity key this codebase
-    ever trusts (see AuthIdentity's docstring, api/models/auth.py). The
-    email is stored as Google reports it regardless of this flag.
+    email_verified is captured but deliberately gates nothing: `sub` is
+    the only identity key trusted.
     """
 
     sub: str
@@ -170,18 +140,10 @@ class GoogleUserInfo(BaseModel):
 async def exchange_google_code(code: str) -> GoogleUserInfo:
     """Exchange an authorization code for Google's verified identity.
 
-    The only function in this module that talks to Google over the
-    network -- kept as its own small function so tests can replace it
-    with monkeypatch.setattr, the same seam-replacement idea
-    app_client's fixture already applies to get_db_session/
-    get_current_learner for the rest of this suite (tests/conftest.py).
-
-    Verifies identity via Google's UserInfo endpoint (a second
-    authenticated call using the access_token just obtained) rather than
-    checking the ID token's JWT signature locally against Google's
-    rotating JWKS keys: the latter needs a real JWT+JWKS library this
-    project doesn't have, and hand-rolling signature verification is
-    exactly the kind of risk to avoid in this module.
+    The only network call to Google, so tests monkeypatch this. Identity
+    comes from the UserInfo endpoint rather than verifying the ID token's
+    JWT against Google's rotating JWKS keys locally, which would need a
+    JWT/JWKS library this project doesn't have.
     """
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -232,19 +194,8 @@ async def find_learning_identity(
 async def handle_google_callback(
     session: AsyncSession, *, code: str, state: str, state_cookie: str | None
 ) -> UUID:
-    """Verify state, exchange the code, and resolve to a real user_id.
-
-    Returns the user_id to sign into the session cookie -- the view
-    layer owns setting the cookie and redirecting, this function owns
-    the identity decision, the same service/view split as everywhere
-    else in this codebase (services stay free of FastAPI response
-    types).
-
-    Wraps exchange_google_code's call, not its own body: a monkeypatched
-    replacement in tests can raise any of these three directly to
-    exercise this exact conversion, rather than needing to reimplement
-    it itself.
-    """
+    """Verify state, exchange the code, and return the user_id to sign
+    into the session cookie."""
 
     if not google_oauth_configured():
         raise NotConfiguredError("Google sign-in is not configured in this environment")
@@ -255,14 +206,9 @@ async def handle_google_callback(
     try:
         google_user = await exchange_google_code(code)
     except (httpx.HTTPStatusError, httpx.RequestError, PydanticValidationError) as exc:
-        # HTTPStatusError: Google's token/userinfo endpoint rejected the
-        # request (e.g. an already-used or expired code). RequestError:
-        # Google could not be reached at all. PydanticValidationError:
-        # Google answered, but not with the shape GoogleTokenResponse/
-        # GoogleUserInfo expect. All three are the same thing from the
-        # caller's side -- the identity provider failed, not something
-        # the caller did wrong -- so all three become one clean,
-        # typed 502, never a raw unhandled 500.
+        # Google rejected the request (e.g. a reused or expired code), was
+        # unreachable, or answered with an unexpected shape: in every case
+        # the identity provider failed, not the caller.
         raise UpstreamAuthError(
             "Google sign-in could not be completed. Please try again."
         ) from exc
@@ -271,29 +217,34 @@ async def handle_google_callback(
         session, provider=AuthProvider.GOOGLE, provider_subject=google_user.sub
     )
     if existing is not None:
-        existing.last_login_at = _utc_now()
+        existing.last_login_at = utc_now()
         session.add(existing)
         await session.commit()
         return existing.user_id
 
-    # First login for this Google identity: User, AuthIdentity, and
-    # LearningIdentity are created together in one transaction -- the
-    # same add-everything-then-one-commit pattern build_comparison_set
-    # uses for its own multi-row insert (api/services/researcher.py) --
-    # so a real identity is never left partially created.
+    # First login: one transaction, so an identity is never left partially
+    # created. A concurrent first login for the same `sub` wins the UNIQUE
+    # constraint, and this one signs in as the user it created.
     user = User()
     session.add(user)
     await session.flush()
+    user_id = user.id
 
-    session.add(
+    identity, created = await insert_once(
+        session,
         AuthIdentity(
-            user_id=user.id,
+            user_id=user_id,
             provider=AuthProvider.GOOGLE,
             provider_subject=google_user.sub,
             verified_email=google_user.email,
-        )
+        ),
+        lambda: find_auth_identity(
+            session, provider=AuthProvider.GOOGLE, provider_subject=google_user.sub
+        ),
     )
-    session.add(LearningIdentity(user_id=user.id))
-    await session.commit()
+    if not created:
+        return identity.user_id
 
-    return user.id
+    session.add(LearningIdentity(user_id=user_id))
+    await session.commit()
+    return user_id

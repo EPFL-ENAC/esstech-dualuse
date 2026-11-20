@@ -1,20 +1,19 @@
 /**
- * Placeholder content for the M0 intake and self-assessment.
+ * Placeholder content for the intake and self-assessment.
  *
  * NOT VALIDATED ASSESSMENT MATERIAL. The items, the primer and the correction
  * text are stand-ins written to exercise the flow, not to measure anything.
- * `PLACEHOLDER_NOTICE` says so on screen, deliberately: a learner should never
- * be left thinking this scored them meaningfully.
+ * The debrief says so on screen (`scaffoldingPlaceholderNote`), deliberately:
+ * a learner should never be left thinking this scored them meaningfully.
  *
- * No option here carries an `isCorrect` flag, and none ever should. The
- * backend's api/content/intake_key.py is the sole holder of the answer key;
- * this file supplies only what is displayed. The two are joined by the item
- * and option ids below, kept aligned by hand -- change an id here and it must
- * change there in the same commit.
+ * The backend's api/content/intake_key.py holds the answer key and does the
+ * scoring; the client learns the correct answers only from a submission's
+ * response. The item and option ids below are kept aligned with it by hand --
+ * change one here and it must change there in the same commit.
  *
- * Content lives here rather than in i18n for the same reason framing.ts does:
- * the ids are a wire contract and must not vary by locale. That leaves the
- * copy English-only for now, which is acceptable while it is a placeholder.
+ * Content lives here rather than in i18n because the ids are a wire contract
+ * and must not vary by locale, so the copy is English-only while it is a
+ * placeholder.
  */
 
 export interface IntakeOption {
@@ -114,11 +113,3 @@ export const TARGETED_CORRECTION = {
     'distributed, the choices left are other people’s. Reacting after ' +
     'reported misuse is real work, but it is no longer prevention.',
 } as const;
-
-export const DIAGNOSTIC_CORRECT_ANSWERS: Readonly<Record<string, string>> = {
-  d1: 'd1c',
-  d2: 'd2a',
-  d3: 'd3b',
-};
-
-export const COMPREHENSION_CORRECT_ANSWER = 'c1b';

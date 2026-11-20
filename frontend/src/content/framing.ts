@@ -6,29 +6,23 @@
  * commitment's `framing_answers` JSON and must stay stable across locales.
  */
 
-export type FramingQuestionKind = 'text' | 'gate';
-
 export interface FramingQuestion {
   /** Stored as-is in framing_answers. Never translate or rename casually. */
   key: string;
   prompt: string;
-  kind: FramingQuestionKind;
 }
 
 export const FRAMING_QUESTIONS: readonly FramingQuestion[] = [
   {
     key: 'decision_owner',
     prompt: 'Who is making the decision at this point?',
-    kind: 'text',
   },
   {
     key: 'capability',
     prompt: 'What capability is being developed or released?',
-    kind: 'text',
   },
   {
     key: 'repurposing',
     prompt: 'Who else could repurpose this capability, and for what purpose?',
-    kind: 'text',
   },
 ];

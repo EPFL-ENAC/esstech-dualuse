@@ -1,10 +1,9 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.db import get_db_session
-from api.dependencies import get_current_learner
+from api.dependencies import get_student_session
+from api.models import Session
 from api.services.intake import (
     ComprehensionResult,
     ComprehensionSubmission,
@@ -16,7 +15,7 @@ from api.services.intake import (
     submit_diagnostic,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["Intake"])
 
 
 @router.post(
@@ -27,21 +26,18 @@ router = APIRouter()
     description=(
         "Score the three diagnostic items and decide whether the micro-primer "
         "is shown. Scored once, then returned unchanged on every later call. "
-        "The response reports the score and the threshold comparison, never "
-        "which option was correct."
+        "The response carries the score, the threshold comparison and each "
+        "item's correct option, which can no longer change the stored score."
     ),
-    tags=["Intake"],
 )
 async def post_diagnostic(
-    session_id: UUID,
     body: DiagnosticSubmission,
+    owned: Session = Depends(get_student_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> DiagnosticResult:
     return await submit_diagnostic(
         session,
-        session_id=session_id,
-        learner_id=learner_id,
+        session_id=owned.id,
         answers=body.answers,
     )
 
@@ -56,18 +52,15 @@ async def post_diagnostic(
         "attempt: a wrong answer finalizes just as a right one does, and every "
         "later call returns the same stored outcome."
     ),
-    tags=["Intake"],
 )
 async def post_comprehension(
-    session_id: UUID,
     body: ComprehensionSubmission,
+    owned: Session = Depends(get_student_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> ComprehensionResult:
     return await submit_comprehension(
         session,
-        session_id=session_id,
-        learner_id=learner_id,
+        session_id=owned.id,
         answer=body.answer,
     )
 
@@ -79,11 +72,9 @@ async def post_comprehension(
     description=(
         "Return this session's stored intake so a reloaded page can resume mid-flow."
     ),
-    tags=["Intake"],
 )
 async def get_session_intake(
-    session_id: UUID,
+    owned: Session = Depends(get_student_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> IntakeState:
-    return await get_intake(session, session_id=session_id, learner_id=learner_id)
+    return await get_intake(session, session_id=owned.id)

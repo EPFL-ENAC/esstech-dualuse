@@ -3,12 +3,18 @@ from uuid import UUID, uuid4
 from fastapi import Depends, Request, Response
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from api.cookies import set_private_cookie
 from api.db import get_db_session
+from api.models import CaseEncounter, Session
+from api.models.enums import SessionRoute
 from api.services.auth import (
     AUTH_SESSION_COOKIE,
+    SESSION_COOKIE_MAX_AGE,
     find_learning_identity,
     verify_session_cookie,
 )
+from api.services.encounters import get_owned_encounter
+from api.services.sessions import get_owned_session
 
 LEARNER_ID_COOKIE = "dev_learner_id"
 
@@ -20,19 +26,12 @@ async def get_current_learner(
 ) -> UUID:
     """Learner identity seam.
 
-    Tier (a): a real, signed session cookie (set by
-    /auth/google/callback, api/views/auth.py) resolves through
-    LearningIdentity to a real learner_id.
+    Tier (a): a signed session cookie set by /auth/google/callback resolves
+    through LearningIdentity to a real learner_id.
 
-    Tier (b): unchanged since before real auth existed. A pseudonymous
-    learner id, stored in a cookie so repeated requests from the same
-    browser resolve to the same learner, minted here if absent. Kept
-    for local dev/manual-testing convenience (e.g. the frontend's "Skip
-    to student flow (dev)" bypass) -- not because the automated test
-    suite depends on it: app_client's fixture overrides this whole
-    function for every other test in this suite (tests/conftest.py), so
-    tier (b)'s own correctness is instead covered by a dedicated
-    regression test that calls this function directly.
+    Tier (b): a pseudonymous learner id kept in a cookie, minted here if
+    absent: the identity of every learner not signed in with Google, which
+    is every learner while the frontend has no sign-in.
     """
 
     raw_session_cookie = request.cookies.get(AUTH_SESSION_COOKIE)
@@ -51,7 +50,43 @@ async def get_current_learner(
             pass
 
     learner_id = uuid4()
-    response.set_cookie(
-        LEARNER_ID_COOKIE, str(learner_id), httponly=True, samesite="lax"
+    set_private_cookie(
+        response, LEARNER_ID_COOKIE, str(learner_id), max_age=SESSION_COOKIE_MAX_AGE
     )
     return learner_id
+
+
+async def get_student_session(
+    session_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    learner_id: UUID = Depends(get_current_learner),
+) -> Session:
+    return await get_owned_session(
+        session,
+        session_id=session_id,
+        learner_id=learner_id,
+        route=SessionRoute.STUDENT,
+    )
+
+
+async def get_researcher_session(
+    session_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    learner_id: UUID = Depends(get_current_learner),
+) -> Session:
+    return await get_owned_session(
+        session,
+        session_id=session_id,
+        learner_id=learner_id,
+        route=SessionRoute.RESEARCHER,
+    )
+
+
+async def get_student_encounter(
+    encounter_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    learner_id: UUID = Depends(get_current_learner),
+) -> CaseEncounter:
+    return await get_owned_encounter(
+        session, encounter_id=encounter_id, learner_id=learner_id
+    )

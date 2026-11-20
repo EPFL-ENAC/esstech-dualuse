@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.config import config
+from api.cookies import set_private_cookie
 from api.db import get_db_session
 from api.services.auth import (
     AUTH_SESSION_COOKIE,
@@ -10,13 +11,12 @@ from api.services.auth import (
     SESSION_COOKIE_MAX_AGE,
     STATE_COOKIE_MAX_AGE,
     build_google_authorize_url,
-    cookies_are_secure,
     handle_google_callback,
     sign_session,
     sign_state,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["Auth"])
 
 
 @router.get(
@@ -28,18 +28,15 @@ router = APIRouter()
         "verified on /auth/google/callback before any token exchange "
         "happens."
     ),
-    tags=["Auth"],
 )
 async def get_google_login() -> RedirectResponse:
     authorize = build_google_authorize_url()
     redirect = RedirectResponse(authorize.url, status_code=302)
-    redirect.set_cookie(
+    set_private_cookie(
+        redirect,
         OAUTH_STATE_COOKIE,
         sign_state(authorize.state),
         max_age=STATE_COOKIE_MAX_AGE,
-        httponly=True,
-        samesite="lax",
-        secure=cookies_are_secure(),
     )
     return redirect
 
@@ -53,7 +50,6 @@ async def get_google_login() -> RedirectResponse:
         "LearningIdentity by provider_subject -- never by email. Sets "
         "the real session cookie and redirects to the frontend."
     ),
-    tags=["Auth"],
 )
 async def get_google_callback(
     code: str,
@@ -68,13 +64,11 @@ async def get_google_callback(
 
     redirect = RedirectResponse(config.APP_URL, status_code=302)
     redirect.delete_cookie(OAUTH_STATE_COOKIE)
-    redirect.set_cookie(
+    set_private_cookie(
+        redirect,
         AUTH_SESSION_COOKIE,
         sign_session(user_id),
         max_age=SESSION_COOKIE_MAX_AGE,
-        httponly=True,
-        samesite="lax",
-        secure=cookies_are_secure(),
     )
     return redirect
 
@@ -83,10 +77,9 @@ async def get_google_callback(
     "/auth/logout",
     summary="Sign out",
     description=(
-        "Clear the real session cookie. Never touches the dev cookie "
-        "(dev_learner_id) -- that fallback is untouched by this endpoint."
+        "Clear the real session cookie. The dev cookie (dev_learner_id) is "
+        "left untouched."
     ),
-    tags=["Auth"],
 )
 async def post_logout(response: Response) -> dict[str, str]:
     response.delete_cookie(AUTH_SESSION_COOKIE)

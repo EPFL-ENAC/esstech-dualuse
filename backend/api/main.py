@@ -5,8 +5,6 @@ from logging import INFO, basicConfig, warning
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
 from pydantic import BaseModel
 
 from api.config import config
@@ -14,7 +12,6 @@ from api.db import dispose_engine, verify_schema_migrated
 from api.services.errors import ServiceError
 from api.views.auth import router as auth_router
 from api.views.cases import router as cases_router
-from api.views.dummy import router as dummy_router
 from api.views.encounters import router as encounters_router
 from api.views.intake import router as intake_router
 from api.views.researcher import router as researcher_router
@@ -25,7 +22,6 @@ basicConfig(level=INFO)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
     await verify_schema_migrated()
     try:
         yield
@@ -83,37 +79,14 @@ async def handle_service_error(_: Request, exc: ServiceError) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
-app.include_router(
-    dummy_router,
-    tags=["Dummy"],
-)
+app.include_router(auth_router)
 
-app.include_router(
-    auth_router,
-    tags=["Auth"],
-)
+app.include_router(sessions_router)
 
-app.include_router(
-    sessions_router,
-    tags=["Sessions"],
-)
+app.include_router(cases_router)
 
-app.include_router(
-    cases_router,
-    tags=["Cases"],
-)
+app.include_router(encounters_router)
 
-app.include_router(
-    encounters_router,
-    tags=["Encounters"],
-)
+app.include_router(intake_router)
 
-app.include_router(
-    intake_router,
-    tags=["Intake"],
-)
-
-app.include_router(
-    researcher_router,
-    tags=["Researcher"],
-)
+app.include_router(researcher_router)

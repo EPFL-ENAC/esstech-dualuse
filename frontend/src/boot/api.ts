@@ -64,8 +64,9 @@ async function readDetail(response: Response): Promise<string> {
 /**
  * Thin wrapper around fetch that targets the backend API.
  *
- * Always sends credentials: the backend identifies the learner from its
- * development cookie, and the dev server is a different origin from the API.
+ * Always sends credentials: the backend identifies the learner from a cookie
+ * (the signed Google session cookie, or the development cookie), and in
+ * development the API is a different origin from the frontend.
  */
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -76,4 +77,12 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     throw new ApiError(response.status, await readDetail(response));
   }
   return (await response.json()) as T;
+}
+
+export function postJson<T>(path: string, body: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }

@@ -1,22 +1,19 @@
 <template>
-  <q-card
-    v-if="counterCase.has_counter_case && counterCase.counter_case"
-    flat
-    bordered
-    class="contrast-panel"
-  >
+  <q-card flat bordered class="contrast-panel">
     <q-card-section>
       <div class="text-subtitle2 q-mb-sm">{{ t('contrastTwinTitle') }}</div>
-      <q-chip outline color="primary">{{ gateLever?.label }}</q-chip>
+      <q-chip outline color="primary">
+        {{ GATE_DISPLAY_BY_ID[counterCase.gate_lever].label }}
+      </q-chip>
       <div class="text-body1 q-mt-sm">
-        {{ counterCase.counter_case.responsibility_posture_contrast }}
+        {{ counterCase.responsibility_posture_contrast }}
       </div>
     </q-card-section>
 
     <q-separator />
 
     <q-card-section>
-      <div class="text-subtitle2 q-mb-sm">{{ t(questionKey) }}</div>
+      <div class="text-subtitle2 q-mb-sm">{{ question }}</div>
       <q-input
         v-model="response"
         :label="t('contrastResponseLabel')"
@@ -45,59 +42,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { Gate } from 'src/api/student';
+import type { CounterCaseInfo } from 'src/api/contrast';
 import { GATE_DISPLAY_BY_ID } from 'src/content/patterns';
 
 defineOptions({
   name: 'ContrastPanel',
 });
 
-// Structural, not imported from api/student.ts: this is the minimal shape
-// this component actually reads (has_counter_case, counter_case.{gate_lever,
-// responsibility_posture_contrast}, contrast.learner_response -- nothing
-// else). Both Student's CounterCaseResponse/ContrastResponse and
-// Researcher's SetCounterCaseResponse/SetContrastResponse satisfy this
-// already, so both routes can pass their own real response types here
-// without an adapter.
-interface ContrastPanelCounterCase {
-  has_counter_case: boolean;
-  counter_case: {
-    gate_lever: Gate;
-    responsibility_posture_contrast: string;
-  } | null;
-}
-
-interface ContrastPanelContrast {
-  learner_response: string | null;
-}
-
-const props = withDefaults(
-  defineProps<{
-    counterCase: ContrastPanelCounterCase;
-    contrast: ContrastPanelContrast | null;
-    submitting: boolean;
-    /** i18n key for the reflection question, shown only on the twin
-     * branch. Defaults to Student's own wording so this stays a no-op
-     * for every existing call site. */
-    questionKey?: string;
-  }>(),
-  { questionKey: 'contrastWhoQuestion' },
-);
+const props = defineProps<{
+  counterCase: CounterCaseInfo;
+  contrast: { learner_response: string | null } | null;
+  submitting: boolean;
+  /** The reflection question, already translated. */
+  question: string;
+}>();
 const emit = defineEmits<{ submit: [learnerResponse: string] }>();
 
 const { t } = useI18n();
 
 const response = ref(props.contrast?.learner_response ?? '');
 
-// The component stays mounted across the submit (v-if="counterCase", not
-// v-if="contrast"), so a losing concurrent submission on the same encounter
-// still gets a 200 back with the winner's stored entry -- idempotency, same
-// as reveal. Without this, `response` would keep showing this tab's own
-// locally-typed text next to "Reflection saved." while the database holds
-// someone else's.
+// A losing concurrent submission still gets a 200 carrying the winner's
+// stored entry; show that rather than this tab's locally-typed text.
 watch(
   () => props.contrast,
   (value) => {
@@ -106,12 +75,4 @@ watch(
     }
   },
 );
-
-const gateLever = computed(() =>
-  props.counterCase.counter_case
-    ? GATE_DISPLAY_BY_ID[props.counterCase.counter_case.gate_lever]
-    : null,
-);
 </script>
-
-<style scoped></style>

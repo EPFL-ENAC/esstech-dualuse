@@ -53,21 +53,15 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
-import type { MessageLanguages } from 'boot/i18n';
+import { LOCALE_NAMES, nextLocale, setLocale } from 'boot/i18n';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const route = useRoute();
 
-const otherLocale = computed<MessageLanguages>(() => (locale.value === 'en-US' ? 'fr' : 'en-US'));
-const otherLocaleLabel = computed(() => (otherLocale.value === 'fr' ? 'Français' : 'English'));
+const otherLocaleLabel = computed(() => LOCALE_NAMES[nextLocale.value]);
 const isLandingPage = computed(() => route.path === '/');
 
 function toggleLocale() {
-  // Captured once: otherLocale is a computed derived from locale.value,
-  // so reading it again after the assignment below would re-evaluate
-  // against the new locale and yield the opposite of the value just set.
-  const next = otherLocale.value;
-  locale.value = next;
-  localStorage.setItem('app-locale', next);
+  setLocale(nextLocale.value);
 }
 </script>

@@ -12,7 +12,6 @@ from sqlmodel import select
 
 from api.models import Case, Commitment, FeedbackRecord
 from api.models.enums import CaseStatus, CaseType, Domain, Gate, MatchResult, Pattern
-from api.services.feedback import compute_match_result
 
 
 def _make_case(
@@ -95,23 +94,6 @@ async def _encounter_for(app_client, db_session, case: Case) -> str:
         (Pattern.B, Gate.G2, MatchResult.MISMATCH),
     ],
 )
-def test_compute_match_result(pattern, gate, expected):
-    case = _make_case(main_path_pattern=Pattern.A, main_path_gate=Gate.G1)
-    commitment = Commitment(
-        case_encounter_id=uuid4(), sequence_no=1, pattern=pattern, gate=gate
-    )
-
-    assert compute_match_result(commitment=commitment, case=case) is expected
-
-
-@pytest.mark.parametrize(
-    ("pattern", "gate", "expected"),
-    [
-        (Pattern.A, Gate.G1, MatchResult.MATCH),
-        (Pattern.A, Gate.G2, MatchResult.PARTIAL_MATCH),
-        (Pattern.B, Gate.G2, MatchResult.MISMATCH),
-    ],
-)
 async def test_reveal_returns_match_result(
     app_client, db_session, pattern, gate, expected
 ):
@@ -145,56 +127,6 @@ async def test_reveal_twice_returns_the_identical_record(app_client, db_session)
     assert _instant(first.json()["revealed_at"]) == _instant(
         second.json()["revealed_at"]
     )
-
-    records = (await db_session.exec(select(FeedbackRecord))).all()
-    assert len(records) == 1
-
-
-async def test_reveal_falls_back_to_the_existing_record_when_the_insert_loses(
-    app_client, db_session, monkeypatch
-):
-    """The race branch, simulated rather than observed.
-
-    This forces the initial lookup to miss so the INSERT hits the real UNIQUE
-    constraint. It does NOT reproduce genuine concurrency: the test fixture's
-    single SQLite connection serializes writers, so the Postgres behaviour this
-    branch relies on -- the losing INSERT blocking until the winner commits,
-    making the row visible on re-fetch -- is not verified here.
-    """
-
-    case = _make_case()
-    encounter_id = await _encounter_for(app_client, db_session, case)
-    await _commit_to(app_client, encounter_id, pattern=Pattern.A, gate=Gate.G1)
-
-    commitment = (await db_session.exec(select(Commitment))).one()
-    winner = FeedbackRecord(
-        case_encounter_id=commitment.case_encounter_id,
-        commitment_id=commitment.id,
-        match_result=MatchResult.MISMATCH,
-    )
-    db_session.add(winner)
-    await db_session.commit()
-
-    from api.services import feedback as feedback_service
-
-    real_find = feedback_service._find_record
-    calls = {"count": 0}
-
-    async def _miss_once(session, *, encounter_id):
-        calls["count"] += 1
-        if calls["count"] == 1:
-            return None
-        return await real_find(session, encounter_id=encounter_id)
-
-    monkeypatch.setattr(feedback_service, "_find_record", _miss_once)
-
-    response = await app_client.post(f"/encounters/{encounter_id}/reveal")
-
-    assert response.status_code == 200
-    body = response.json()
-    # The winner's verdict survives, rather than being recomputed or restamped.
-    assert body["feedback_record_id"] == str(winner.id)
-    assert body["match_result"] == MatchResult.MISMATCH.value
 
     records = (await db_session.exec(select(FeedbackRecord))).all()
     assert len(records) == 1

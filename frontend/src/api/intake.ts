@@ -1,11 +1,10 @@
 /**
- * Typed client for the M0 intake endpoints.
+ * Typed client for the intake endpoints.
  *
- * The types mirror the backend's response models exactly. Note what is absent:
- * no response carries a correct option id. The learner's own selections go up,
- * outcomes come back, and the answer key never leaves the server.
+ * The answer key reaches the client only after submission: each result
+ * carries the correct option ids for the items just submitted.
  */
-import { apiFetch } from 'boot/api';
+import { apiFetch, postJson } from 'boot/api';
 
 export const SCAFFOLDING_DEPTHS = ['high', 'standard', 'low'] as const;
 export type ScaffoldingDepth = (typeof SCAFFOLDING_DEPTHS)[number];
@@ -13,10 +12,13 @@ export type ScaffoldingDepth = (typeof SCAFFOLDING_DEPTHS)[number];
 export interface DiagnosticResult {
   diagnostic_score: number;
   above_threshold: boolean;
+  /** The correct option id per diagnostic item, in item order. */
+  correct_answers: string[];
 }
 
 export interface ComprehensionResult {
   correct: boolean;
+  correct_answer: string;
   scaffolding_depth: ScaffoldingDepth;
 }
 
@@ -25,20 +27,15 @@ export interface IntakeState {
   diagnostic_answers: string[];
   diagnostic_score: number;
   above_threshold: boolean;
+  diagnostic_correct_answers: string[];
   primer_shown: boolean;
   created_at: string;
   comprehension_answer: string | null;
   comprehension_correct: boolean | null;
+  /** Null until the comprehension answer is submitted. */
+  comprehension_correct_answer: string | null;
   scaffolding_depth: ScaffoldingDepth | null;
   completed_at: string | null;
-}
-
-function postJson<T>(path: string, body: unknown): Promise<T> {
-  return apiFetch<T>(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
 }
 
 /**

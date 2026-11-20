@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, Column, DateTime
+from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
+from api.models.base import timestamp_column, utc_now
 from api.models.enums import (
     CaseStatus,
     CaseType,
@@ -14,10 +15,6 @@ from api.models.enums import (
     Pattern,
     sa_enum,
 )
-
-
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class Case(SQLModel, table=True):
@@ -39,30 +36,25 @@ class Case(SQLModel, table=True):
         sa_column=Column(sa_enum(Pattern), nullable=False)
     )
     main_path_gate: Gate = Field(sa_column=Column(sa_enum(Gate), nullable=False))
-    # Free-text citations, displayed as-is and never filtered on, so a JSON list
-    # is enough -- unlike tagged patterns/gates below, this needs no join table.
+    # Free-text citations, never filtered on: a JSON list, not a join table.
     source_references: list[str] = Field(
         default_factory=list, sa_column=Column(JSON, nullable=False)
     )
-    # Structured technology domain, used only by Researcher-route matching.
-    # Distinct from `area` above on purpose: `area` is free-text editorial
-    # copy already shown in the Student UI via CaseCandidate (verified
-    # end-to-end in Sprint 2, do not touch it), while `domain` is a fixed
-    # enum a case is tagged with for Function/Form/Domain comparison-set
-    # matching. This is not duplication to clean up later.
+    # Not a duplicate of `area`: `area` is free-text editorial copy shown in
+    # the Student UI; `domain` is the fixed taxonomy value used for
+    # Researcher-route comparison-set matching.
     domain: Domain = Field(sa_column=Column(sa_enum(Domain), nullable=False))
-    # Never filtered or joined on, same reasoning as source_references above
-    # -- a JSON list is enough, no join table needed.
+    # Never filtered on: a JSON list, not a join table.
     forms: list[Form] = Field(
         default_factory=list, sa_column=Column(JSON, nullable=False)
     )
     created_at: datetime = Field(
-        default_factory=_utc_now,
-        sa_column=Column(DateTime(timezone=True), nullable=False),
+        default_factory=utc_now,
+        sa_column=timestamp_column(),
     )
     updated_at: datetime = Field(
-        default_factory=_utc_now,
-        sa_column=Column(DateTime(timezone=True), nullable=False, onupdate=_utc_now),
+        default_factory=utc_now,
+        sa_column=timestamp_column(onupdate=utc_now),
     )
 
 

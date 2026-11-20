@@ -6,15 +6,12 @@
         <div class="text-subtitle2 text-grey-7">{{ t('studentIntro') }}</div>
       </div>
 
-      <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
-        <template #avatar><q-icon name="warning" color="negative" /></template>
-        <div class="text-weight-medium">{{ t('errorTitle') }}</div>
-        <div>{{ errorMessage }}</div>
+      <ErrorBanner v-if="errorMessage" :message="errorMessage">
         <template #action>
           <q-btn flat :label="t('errorRetry')" @click="retry" />
           <q-btn flat :label="t('studentReset')" @click="startOver" />
         </template>
-      </q-banner>
+      </ErrorBanner>
 
       <q-card v-if="!store.session" flat bordered>
         <q-card-section class="row items-center justify-between">
@@ -100,12 +97,12 @@ import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import { ApiError } from 'boot/api';
 import CaseDomainLabel from 'components/CaseDomainLabel.vue';
+import ErrorBanner from 'components/ErrorBanner.vue';
+import { useDescribeError, useErrorMessage } from 'src/composables/useApiError';
 import { createEncounter, listCandidateCases } from 'src/api/student';
 import type { CaseCandidate } from 'src/api/student';
 import { createSession } from 'src/api/sessions';
-import { useIntakeStore } from 'stores/intake';
 import { useStudentStore } from 'stores/student';
 
 defineOptions({
@@ -115,32 +112,28 @@ defineOptions({
 const { t } = useI18n();
 const router = useRouter();
 const store = useStudentStore();
-const intakeStore = useIntakeStore();
+const { errorMessage, report } = useErrorMessage();
 
 const candidates = ref<CaseCandidate[]>([]);
 const loadingCases = ref(false);
 const starting = ref(false);
 const selectingId = ref<string | null>(null);
-const errorMessage = ref('');
 
-// Selecting a case creates an encounter immediately, spending one of the
-// session's three slots with no way to give it back, so the POST is gated
-// behind an explicit confirmation rather than a single click.
+// Creating an encounter irreversibly spends one of the session's
+// CASES_PER_SESSION slots, so it is gated behind an explicit confirmation.
 const confirmOpen = ref(false);
 const pendingCase = ref<CaseCandidate | null>(null);
 
-function describe(error: unknown): string {
-  return error instanceof ApiError ? error.detail : t('errorUnexpected');
-}
+const describe = useDescribeError();
 
 async function startSession() {
   starting.value = true;
   errorMessage.value = '';
   try {
-    store.setSession(await createSession());
+    store.setSession(await createSession('student'));
     await loadCandidates();
   } catch (error) {
-    errorMessage.value = describe(error);
+    report(error);
   } finally {
     starting.value = false;
   }
@@ -152,7 +145,7 @@ async function loadCandidates() {
   try {
     candidates.value = await listCandidateCases();
   } catch (error) {
-    errorMessage.value = describe(error);
+    report(error);
   } finally {
     loadingCases.value = false;
   }
@@ -189,9 +182,8 @@ async function selectCase(candidate: CaseCandidate) {
     await router.push('/student/encounter');
   } catch (error) {
     const message = describe(error);
-    // The session may have filled up or the case may already be taken, so the
-    // list on screen is no longer trustworthy. Refresh first, then report:
-    // loadCandidates clears errorMessage, so setting it earlier would be lost.
+    // The session may have filled up or the case been taken: refresh the list,
+    // then report (loadCandidates clears errorMessage).
     await loadCandidates();
     errorMessage.value = message;
   } finally {
@@ -200,8 +192,7 @@ async function selectCase(candidate: CaseCandidate) {
 }
 
 async function startOver() {
-  store.reset();
-  intakeStore.reset();
+  store.startOver();
   candidates.value = [];
   errorMessage.value = '';
   await router.push('/intake');

@@ -1,8 +1,8 @@
 <template>
   <q-card flat bordered class="reveal-panel">
     <q-card-section :class="`bg-${verdict.color} text-white`">
-      <div class="text-h6">{{ t(verdict.label) }}</div>
-      <div class="text-body2 q-mt-xs">{{ t(verdict.hint) }}</div>
+      <div class="text-h6">{{ t(verdict.labelKey) }}</div>
+      <div class="text-body2 q-mt-xs">{{ t(verdict.hintKey) }}</div>
     </q-card-section>
 
     <q-card-section>
@@ -46,7 +46,8 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { MatchResult, RevealResponse } from 'src/api/student';
+import type { RevealResponse } from 'src/api/student';
+import { MATCH_RESULT_DISPLAY } from 'src/content/matchResult';
 import { GATE_DISPLAY_BY_ID, PATTERN_DISPLAY_BY_ID } from 'src/content/patterns';
 
 defineOptions({
@@ -57,21 +58,12 @@ const props = defineProps<{ reveal: RevealResponse }>();
 
 const { t } = useI18n();
 
-// The reveal carries only these four enum values — the learner's commitment and
-// the case's main path. The records are keyed by Pattern/Gate, so every lookup
-// resolves; there is no fallback to write.
 const committedPattern = computed(() => PATTERN_DISPLAY_BY_ID[props.reveal.commitment.pattern]);
 const committedGate = computed(() => GATE_DISPLAY_BY_ID[props.reveal.commitment.gate]);
 const mainPathPattern = computed(() => PATTERN_DISPLAY_BY_ID[props.reveal.case.main_path_pattern]);
 const mainPathGate = computed(() => GATE_DISPLAY_BY_ID[props.reveal.case.main_path_gate]);
 
-const VERDICTS: Record<MatchResult, { color: string; label: string; hint: string }> = {
-  match: { color: 'positive', label: 'matchMatch', hint: 'matchMatchHint' },
-  partial_match: { color: 'warning', label: 'matchPartial', hint: 'matchPartialHint' },
-  mismatch: { color: 'negative', label: 'matchMismatch', hint: 'matchMismatchHint' },
-};
-
-const verdict = computed(() => VERDICTS[props.reveal.match_result]);
+const verdict = computed(() => MATCH_RESULT_DISPLAY[props.reveal.match_result]);
 
 const revealedAt = computed(() => new Date(props.reveal.revealed_at).toLocaleString());
 </script>

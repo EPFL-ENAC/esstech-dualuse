@@ -16,18 +16,15 @@
             <div class="text-caption text-grey-7">{{ encounter.case.area }}</div>
           </div>
           <q-chip outline color="primary">
-            {{ t('encounterStep', { current: encounter.sequence_no, total: 3 }) }}
+            {{ t('encounterStep', { current: encounter.sequence_no, total: CASES_PER_SESSION }) }}
           </q-chip>
         </div>
 
-        <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
-          <template #avatar><q-icon name="warning" color="negative" /></template>
-          <div class="text-weight-medium">{{ t('errorTitle') }}</div>
-          <div>{{ errorMessage }}</div>
-          <template #action>
-            <q-btn v-if="notFound" flat :label="t('studentReset')" @click="startOver" />
+        <ErrorBanner v-if="errorMessage" :message="errorMessage">
+          <template v-if="notFound" #action>
+            <q-btn flat :label="t('studentReset')" @click="startOver" />
           </template>
-        </q-banner>
+        </ErrorBanner>
 
         <q-card flat bordered>
           <q-card-section>
@@ -44,28 +41,16 @@
             <div class="text-caption text-grey-7 q-mb-md">{{ t('framingHint') }}</div>
 
             <div class="column q-gutter-md">
-              <template v-for="question in FRAMING_QUESTIONS" :key="question.key">
-                <q-select
-                  v-if="question.kind === 'gate'"
-                  v-model="framingAnswers[question.key]"
-                  :options="gateOptions"
-                  :label="question.prompt"
-                  :disable="isCommitted"
-                  outlined
-                  emit-value
-                  map-options
-                  clearable
-                />
-                <q-input
-                  v-else
-                  v-model="framingAnswers[question.key]"
-                  :label="question.prompt"
-                  :disable="isCommitted"
-                  outlined
-                  autogrow
-                  type="textarea"
-                />
-              </template>
+              <q-input
+                v-for="question in FRAMING_QUESTIONS"
+                :key="question.key"
+                v-model="framingAnswers[question.key]"
+                :label="question.prompt"
+                :disable="isCommitted"
+                outlined
+                autogrow
+                type="textarea"
+              />
             </div>
           </q-card-section>
         </q-card>
@@ -76,31 +61,16 @@
             <div class="text-caption text-grey-7 q-mb-md">{{ t('commitmentHint') }}</div>
 
             <div class="row q-col-gutter-md">
-              <q-select
+              <PatternSelect
                 v-model="pattern"
                 class="col-12 col-sm-6"
-                :options="patternOptions"
                 :label="t('commitmentPattern')"
                 :disable="isCommitted"
-                outlined
-                emit-value
-                map-options
-              >
-                <template #option="{ itemProps, opt }">
-                  <q-item v-bind="itemProps">
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                      <q-item-label caption class="encounter-page__option-caption">
-                        {{ opt.description }}
-                      </q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
+              />
               <q-select
                 v-model="gate"
                 class="col-12 col-sm-6"
-                :options="gateOptions"
+                :options="GATE_OPTIONS"
                 :label="t('commitmentGate')"
                 :disable="isCommitted"
                 outlined
@@ -138,31 +108,32 @@
 
         <RevealPanel v-if="reveal" :reveal="reveal" />
 
-        <!-- Never shows on the normal path: requestCounterCase() already ran
-             automatically inside requestReveal(). This is a manual retry for
-             the two abnormal ways to land here -- that call failing, or a
-             reload landing between reveal succeeding and the lookup
-             resolving, since this page has no onMounted to resume it. -->
-        <div v-if="reveal && !counterCase && !loadingCounterCase" class="row justify-end">
+        <div v-if="counterCaseRetryNeeded" class="row justify-end">
           <q-btn color="primary" flat :label="t('contrastContinue')" @click="requestCounterCase" />
         </div>
 
         <ContrastPanel
-          v-if="counterCase?.has_counter_case"
-          :counter-case="counterCase"
+          v-if="twinCounterCase"
+          :counter-case="twinCounterCase"
           :contrast="contrast"
           :submitting="submittingContrast"
-          @submit="submitContrastReflection"
+          :question="t('contrastWhoQuestion')"
+          @submit="submitContrast"
         />
 
         <q-card v-if="contrast" flat bordered>
           <q-card-section>
             <div class="text-body1">
-              {{ t('anotherCaseProgress', { current: encounter.sequence_no, total: 3 }) }}
+              {{
+                t('anotherCaseProgress', {
+                  current: encounter.sequence_no,
+                  total: CASES_PER_SESSION,
+                })
+              }}
             </div>
           </q-card-section>
           <q-card-actions align="right">
-            <template v-if="encounter.sequence_no < 3">
+            <template v-if="encounter.sequence_no < CASES_PER_SESSION">
               <q-btn flat :label="t('anotherCaseNo')" @click="goToDebrief" />
               <q-btn color="primary" unelevated :label="t('anotherCaseYes')" @click="goToCases" />
             </template>
@@ -179,84 +150,78 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import ContrastPanel from 'components/ContrastPanel.vue';
 import CaseDomainLabel from 'components/CaseDomainLabel.vue';
+import ContrastPanel from 'components/ContrastPanel.vue';
+import ErrorBanner from 'components/ErrorBanner.vue';
+import PatternSelect from 'components/PatternSelect.vue';
 import RevealPanel from 'components/RevealPanel.vue';
-import { ApiError } from 'boot/api';
-import { createCommitment, getCounterCase, revealEncounter, submitContrast } from 'src/api/student';
-import type { FramingAnswers, Gate, Pattern } from 'src/api/student';
+import { useOwnedResourceError } from 'src/composables/useApiError';
+import { useRevealContrast } from 'src/composables/useRevealContrast';
+import {
+  CASES_PER_SESSION,
+  createCommitment,
+  getCounterCase,
+  revealEncounter,
+  submitContrast as submitContrastRequest,
+} from 'src/api/student';
+import type { FramingAnswers } from 'src/api/student';
+import type { Gate, Pattern } from 'src/api/taxonomy';
 import { FRAMING_QUESTIONS } from 'src/content/framing';
-import { GATE_OPTIONS, PATTERN_OPTIONS } from 'src/content/patterns';
+import { GATE_OPTIONS } from 'src/content/patterns';
 import { useStudentStore } from 'stores/student';
-import { useIntakeStore } from 'stores/intake';
 
 defineOptions({
   name: 'StudentEncounterPage',
 });
 
 const { t } = useI18n();
+const errors = useOwnedResourceError();
+const { errorMessage, notFound } = errors;
 const router = useRouter();
 const store = useStudentStore();
-const intakeStore = useIntakeStore();
 
 const encounter = computed(() => store.encounter);
 const reveal = computed(() => store.reveal);
-const counterCase = computed(() => store.counterCase);
 const contrast = computed(() => store.contrast);
 const isCommitted = computed(() => store.commitment !== null);
 
-// Display text only. `value` stays the backend enum ID, so commitment payloads
-// are unchanged by the relabelling. No cast is needed: content/patterns.ts keys
-// its records by Pattern/Gate, so a drifted id is a compile error there.
-const patternOptions = PATTERN_OPTIONS.map((option) => ({
-  label: option.label,
-  value: option.id,
-  description: option.description,
-}));
-
-// Shared with the framing gate question above on purpose: same enum, one set of
-// labels. The two answers stay independent — only their wording is common.
-const gateOptions = GATE_OPTIONS.map((option) => ({
-  label: option.label,
-  value: option.id,
-}));
-
-// Kept separate from `gate` below on purpose: the framing answer records the
-// learner's own reading of the decision point, while the commitment gate is
-// their formal choice. They may coincide but neither drives the other.
-const framingAnswers = reactive<Record<string, string | null>>(
-  Object.fromEntries(FRAMING_QUESTIONS.map((question) => [question.key, null])),
+const framingAnswers = reactive<Record<string, string>>(
+  Object.fromEntries(FRAMING_QUESTIONS.map((question) => [question.key, ''])),
 );
 
 const pattern = ref<Pattern | null>(null);
 const gate = ref<Gate | null>(null);
 
 const committing = ref(false);
-const revealing = ref(false);
-const loadingCounterCase = ref(false);
-const submittingContrast = ref(false);
-const errorMessage = ref('');
-const notFound = ref(false);
+
+const {
+  revealing,
+  submittingContrast,
+  twinCounterCase,
+  counterCaseRetryNeeded,
+  requestReveal,
+  requestCounterCase,
+  submitContrast,
+} = useRevealContrast({
+  targetId: () => store.encounter?.id,
+  store,
+  api: {
+    reveal: revealEncounter,
+    getCounterCase,
+    submitContrast: submitContrastRequest,
+  },
+  errors,
+});
 
 const canCommit = computed(() => pattern.value !== null && gate.value !== null);
 const revealLabel = computed(() => (reveal.value ? t('revealAgain') : t('revealAction')));
 
-function handle(error: unknown) {
-  if (error instanceof ApiError) {
-    notFound.value = error.status === 404;
-    errorMessage.value = error.status === 404 ? t('errorNotYours') : error.detail;
-    return;
-  }
-  notFound.value = false;
-  errorMessage.value = t('errorUnexpected');
-}
-
 function collectFramingAnswers(): FramingAnswers {
   const answers: FramingAnswers = {};
   for (const question of FRAMING_QUESTIONS) {
-    const value = framingAnswers[question.key];
-    if (typeof value === 'string' && value.trim() !== '') {
-      answers[question.key] = value.trim();
+    const value = framingAnswers[question.key]?.trim() ?? '';
+    if (value !== '') {
+      answers[question.key] = value;
     }
   }
   return answers;
@@ -278,66 +243,9 @@ async function submitCommitment() {
       }),
     );
   } catch (error) {
-    handle(error);
+    errors.report(error);
   } finally {
     committing.value = false;
-  }
-}
-
-async function requestReveal() {
-  if (!encounter.value) {
-    return;
-  }
-
-  revealing.value = true;
-  errorMessage.value = '';
-  try {
-    // Always render what the server returns. Reveal is compute-or-fetch, so a
-    // repeat call is the stored verdict, not a new one.
-    store.setReveal(await revealEncounter(encounter.value.id));
-    await requestCounterCase();
-  } catch (error) {
-    handle(error);
-  } finally {
-    revealing.value = false;
-  }
-}
-
-async function requestCounterCase() {
-  if (!encounter.value) {
-    return;
-  }
-
-  loadingCounterCase.value = true;
-  errorMessage.value = '';
-  try {
-    const result = await getCounterCase(encounter.value.id);
-    store.setCounterCase(result);
-    if (!result.has_counter_case) {
-      // No question to ask: submit the open-area acknowledgement directly,
-      // rather than waiting on a button click with nothing to click for.
-      await submitContrastReflection(null);
-    }
-  } catch (error) {
-    handle(error);
-  } finally {
-    loadingCounterCase.value = false;
-  }
-}
-
-async function submitContrastReflection(learnerResponse: string | null) {
-  if (!encounter.value) {
-    return;
-  }
-
-  submittingContrast.value = true;
-  errorMessage.value = '';
-  try {
-    store.setContrast(await submitContrast(encounter.value.id, learnerResponse));
-  } catch (error) {
-    handle(error);
-  } finally {
-    submittingContrast.value = false;
   }
 }
 
@@ -351,8 +259,7 @@ async function goToDebrief() {
 }
 
 async function startOver() {
-  store.reset();
-  intakeStore.reset();
+  store.startOver();
   await router.push('/intake');
 }
 </script>
@@ -364,9 +271,5 @@ async function startOver() {
 
 .encounter-page__narrative {
   white-space: pre-wrap;
-}
-
-.encounter-page__option-caption {
-  white-space: normal;
 }
 </style>

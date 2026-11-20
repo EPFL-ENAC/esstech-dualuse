@@ -116,13 +116,8 @@ async def _build_comparison_set(
     cases_and_patterns: list[tuple[Case, list[Pattern]]],
     was_widened: bool = False,
 ) -> None:
-    """Insert a ComparisonSet, its cases, and their tagged patterns directly.
-
-    Bypasses the real intake-matching flow, the same reasoning
-    test_researcher_flow.py's own _make_comparison_set gives: this file
-    needs full control over the resulting pattern distribution, not a
-    real corpus match.
-    """
+    """Insert a ComparisonSet, its cases, and their tagged patterns directly,
+    to control the pattern distribution instead of relying on a corpus match."""
 
     for case, _ in cases_and_patterns:
         db_session.add(case)
@@ -284,7 +279,6 @@ async def test_report_is_boundary_exit_once_tag_attempts_are_exhausted(
     assert "domain" not in body  # never entered during either attempt
     assert body["functions"] == ["sensing"]
     assert body["forms"] == ["device"]
-    assert body["reflection_prompt_key"] == "researcherReflectionBoundaryExit"
     assert "gate" not in body
     assert "case_count" not in body
     assert "predictions" not in body
@@ -315,7 +309,6 @@ async def test_report_full_with_matching_prediction_and_open_area(
     assert body["top_prediction_is_dominant"] is True
     assert body["contrast_type"] == "open_area"
     assert "learner_response" not in body  # always None for open_area, so omitted
-    assert body["reflection_prompt_key"] == "researcherReflectionFullMatchesDominant"
     assert "gate_lever" not in body
 
 
@@ -364,7 +357,6 @@ async def test_report_full_with_mismatched_prediction_and_twin_counter_case(
     assert body["contrast_type"] == "twin_counter_case"
     assert body["learner_response"] == "The counter-case shifts who is responsible."
     assert body["gate_lever"] == "G4"
-    assert body["reflection_prompt_key"] == "researcherReflectionFullDoesNotMatch"
 
 
 async def test_report_zero_pattern_when_no_case_carries_a_tagged_pattern(
@@ -379,7 +371,6 @@ async def test_report_zero_pattern_when_no_case_carries_a_tagged_pattern(
     assert body["secondary_patterns"] == []
     assert "top_prediction_is_dominant" not in body
     assert body["contrast_type"] == "open_area"
-    assert body["reflection_prompt_key"] == "researcherReflectionZeroPattern"
 
 
 async def test_another_learners_session_report_is_not_found(

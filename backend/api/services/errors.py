@@ -1,10 +1,5 @@
 class ServiceError(Exception):
-    """A rejection raised by the service layer, carrying its HTTP status.
-
-    Services stay free of FastAPI imports: `main.py` registers a single
-    handler that turns these into responses, so business rules are expressed
-    once and the web layer decides how to render them.
-    """
+    """A rejection raised by the service layer, carrying its HTTP status."""
 
     status_code: int = 400
 
@@ -38,15 +33,12 @@ class ValidationError(ServiceError):
 
 class UpstreamAuthError(ServiceError):
     """An external identity provider (e.g. Google) failed, could not be
-    reached, or returned something this codebase could not use --
-    never the caller's fault, unlike ValidationError above."""
+    reached, or returned something unusable -- never the caller's fault."""
 
     status_code = 502
 
 
 class NotConfiguredError(ServiceError):
-    """A feature's required configuration is absent in this environment --
-    distinct from UpstreamAuthError: the external provider was never even
-    contacted."""
+    """A feature's required configuration is absent in this environment."""
 
     status_code = 503

@@ -7,12 +7,9 @@ Run before an E2E suite, ahead of migrations and seeding:
     DB_NAME=app_e2e uv run python -m scripts.seed_cases
 
 This is destructive by design, so it refuses to run anywhere but a database
-whose name starts with `app_e2e`. That guard is not hypothetical caution: the
-connection target is built by `config.DB_URL`, a computed property, and an
-attempt to override it through a `DB_URL` environment variable is silently
-ignored -- which has already sent a migration at the real development
-database once. `DB_NAME` *is* a real settings field and does take effect, but
-the guard checks the resolved URL rather than trusting that.
+whose name starts with `app_e2e`. `config.DB_URL` is a computed property, so a
+`DB_URL` environment variable is silently ignored; only `DB_NAME` takes
+effect. The guard checks the resolved URL rather than trusting either.
 """
 
 import asyncio
@@ -77,13 +74,10 @@ async def _ensure_database_exists(name: str) -> None:
 async def _truncate_session_data(name: str) -> None:
     """Empty every table that hangs off `session`, leaving case content alone.
 
-    TRUNCATE ... CASCADE walks the foreign-key graph itself, so this keeps
-    working as tables are added: anything that references `session`, or
-    references something that references it, goes too. Nothing in `case`,
-    `case_tagged_pattern`, `case_tagged_gate` or `counter_case_link` points at
-    `session`, so the cascade never reaches the seeded content.
-
-    No RESTART IDENTITY: every primary key here is a UUID, not a sequence.
+    TRUNCATE ... CASCADE follows the foreign-key graph, so tables added later
+    are covered too. No case-content table references `session`, so the
+    cascade never reaches the seeded content. No RESTART IDENTITY: every
+    primary key is a UUID, not a sequence.
     """
 
     engine = create_async_engine(config.DB_URL)

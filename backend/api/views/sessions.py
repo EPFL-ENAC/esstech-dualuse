@@ -4,12 +4,13 @@ from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.db import get_db_session
-from api.dependencies import get_current_learner
+from api.dependencies import get_current_learner, get_student_session
+from api.models import Session
 from api.services.encounters import EncounterCreate, EncounterCreated, create_encounter
 from api.services.report import SessionReport, get_session_report
 from api.services.sessions import SessionCreate, SessionCreated, create_session
 
-router = APIRouter()
+router = APIRouter(tags=["Sessions"])
 
 
 @router.post(
@@ -19,19 +20,16 @@ router = APIRouter()
     summary="Start a session",
     description=(
         "Start an individual session for the current learner. Defaults to "
-        "the Student route when the body is omitted or route is not set, "
-        "unchanged from before the Researcher route existed."
+        "the Student route when the body is omitted or route is not set."
     ),
-    tags=["Sessions"],
 )
 async def post_session(
     body: SessionCreate | None = None,
     session: AsyncSession = Depends(get_db_session),
     learner_id: UUID = Depends(get_current_learner),
 ) -> SessionCreated:
-    if body is not None:
-        return await create_session(session, learner_id=learner_id, route=body.route)
-    return await create_session(session, learner_id=learner_id)
+    route = (body or SessionCreate()).route
+    return await create_session(session, learner_id=learner_id, route=route)
 
 
 @router.post(
@@ -43,20 +41,13 @@ async def post_session(
         "Add a case to this session as its next encounter. The response "
         "excludes the case's full narrative and main path."
     ),
-    tags=["Sessions"],
 )
 async def post_encounter(
-    session_id: UUID,
     body: EncounterCreate,
+    owned: Session = Depends(get_student_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> EncounterCreated:
-    return await create_encounter(
-        session,
-        session_id=session_id,
-        learner_id=learner_id,
-        case_id=body.case_id,
-    )
+    return await create_encounter(session, session_id=owned.id, case_id=body.case_id)
 
 
 @router.get(
@@ -69,13 +60,9 @@ async def post_encounter(
         "the session's completed encounters. Minimal when no case has been "
         "completed yet, rather than empty lists or zeroed counts."
     ),
-    tags=["Sessions"],
 )
 async def get_session_report_endpoint(
-    session_id: UUID,
+    owned: Session = Depends(get_student_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> SessionReport:
-    return await get_session_report(
-        session, session_id=session_id, learner_id=learner_id
-    )
+    return await get_session_report(session, session_id=owned.id)

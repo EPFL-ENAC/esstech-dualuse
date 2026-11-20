@@ -1,26 +1,24 @@
-env_path=../.env
-
 install:
 	uv venv --python 3.13 --allow-existing
 	uv pip install -e .[dev]
 
 run:
-	uv run dotenv -f "$(env_path)" run uvicorn api.main:app --reload
+	uv run uvicorn api.main:app --reload
 
 test:
-	uv run dotenv -f "$(env_path)" run pytest
+	uv run pytest
 
 db-upgrade:
-	uv run dotenv -f "$(env_path)" run alembic upgrade head
+	uv run alembic upgrade head
 
 db-downgrade:
-	uv run dotenv -f "$(env_path)" run alembic downgrade -1
+	uv run alembic downgrade -1
 
 db-revision:
-	uv run dotenv -f "$(env_path)" run alembic revision --autogenerate -m "$(name)"
+	uv run alembic revision --autogenerate -m "$(name)"
 
 db-seed:
-	uv run dotenv -f "$(env_path)" run python -m scripts.seed_cases
+	uv run python -m scripts.seed_cases
 
 typecheck:
 	uvx lefthook run pre-commit --command backend-typecheck --all-files

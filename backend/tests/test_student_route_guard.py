@@ -1,8 +1,4 @@
-"""Route-boundary tests for the Student route.
-
-Symmetric to test_researcher_flow.py's Researcher-route coverage: every
-Student-route service now checks require_student_route the same way every
-Researcher-route service checks require_researcher_route.
+"""Every Student-route endpoint rejects a Researcher-route session.
 
 The API and these tests share one database session (see the `app_client`
 fixture), so fixture rows must be committed before any API call.
@@ -40,13 +36,9 @@ async def _start_researcher_session(app_client) -> str:
 
 
 async def _make_researcher_encounter(db_session, *, session_id: str) -> str:
-    """Insert a CaseEncounter directly against a Researcher-route session.
+    """Insert a CaseEncounter on a Researcher-route session.
 
-    create_encounter itself now correctly refuses a Researcher-route
-    session (it is one of the 9 functions this file tests), so this state
-    can no longer be built through the API -- only a direct insert reaches
-    it, the same way Case rows themselves are always inserted directly
-    rather than through an endpoint.
+    The API refuses to create one, so only a direct insert reaches this state.
     """
 
     case = _make_case()

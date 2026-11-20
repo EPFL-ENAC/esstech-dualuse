@@ -1,31 +1,31 @@
-#   Refer for explanation to following link:
-#   https://lefthook.dev/configuration/
-
 pre-commit:
   parallel: true
   commands:
-    # The "{,**/}" in these globs matches src's own files as well as its
-    # subdirectories: a bare "**/" requires at least one directory, which
-    # silently skipped src/App.vue and src/env.d.ts.
+    # "{,**/}" matches src's own files as well as its subdirectories: a bare
+    # "**/" requires at least one directory (it skipped src/App.vue).
     frontend-typecheck:
       root: frontend
-      glob: "frontend/src/{,**/}*.{ts,vue}"
-      exclude: "frontend/third-party/**"
-      run: test -f .quasar/tsconfig.json || npx quasar prepare && npx vue-tsc --noEmit --project tsconfig.typecheck.json
+      glob:
+        - "frontend/src/{,**/}*.{ts,vue}"
+        - "frontend/e2e/{,**/}*.ts"
+        - "frontend/playwright.config.ts"
+      run: test -f .quasar/tsconfig.json || npx quasar prepare && npx vue-tsc --noEmit --project tsconfig.json
     frontend-lint:
       root: frontend
-      glob: "frontend/src/{,**/}*.{ts,js,cjs,mjs,vue}"
-      exclude: "frontend/third-party/**"
+      glob:
+        - "frontend/src/{,**/}*.{ts,js,cjs,mjs,vue}"
+        - "frontend/e2e/{,**/}*.{ts,js,cjs,mjs,vue}"
+        - "frontend/playwright.config.ts"
       run: test -f .quasar/tsconfig.json || npx quasar prepare && npx eslint -c eslint.config.js {staged_files}
     frontend-format:
       root: frontend
-      glob: "frontend/src/{,**/}*.{js,ts,vue,scss,html,md,json}"
-      exclude: "frontend/third-party/**"
+      glob:
+        - "frontend/src/{,**/}*.{js,ts,vue,scss,html,md,json}"
+        - "frontend/e2e/{,**/}*.{js,ts,vue,scss,html,md,json}"
+        - "frontend/playwright.config.ts"
       run: npx prettier --write {staged_files} --ignore-path .gitignore
       stage_fixed: true
-    # The "{,**/}" in these globs matches a directory's own files as well as
-    # its subdirectories: a bare "**/" requires at least one directory, which
-    # silently skipped api/db.py, api/main.py and every tests/ file.
+    # "{,**/}": see the frontend globs above.
     backend-typecheck:
       root: backend
       glob: "backend/{api,tests,scripts}/{,**/}*.py"

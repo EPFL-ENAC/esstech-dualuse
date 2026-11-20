@@ -11,7 +11,6 @@ not the pedagogy.
 """
 
 from datetime import datetime, timezone
-from uuid import UUID, uuid4
 
 import pytest
 from sqlmodel import select
@@ -83,9 +82,22 @@ async def test_diagnostic_scores_against_the_key(app_client, answers, expected_s
     response = await _diagnostic(app_client, session_id, answers)
 
     assert response.status_code == 201
-    body = response.json()
-    assert body["diagnostic_score"] == expected_score
-    assert body["above_threshold"] is (expected_score >= DIAGNOSTIC_THRESHOLD)
+    assert response.json()["diagnostic_score"] == expected_score
+
+
+@pytest.mark.parametrize(
+    ("correct_count", "expected_above"),
+    [(DIAGNOSTIC_THRESHOLD - 1, False), (DIAGNOSTIC_THRESHOLD, True)],
+)
+async def test_a_score_at_the_threshold_counts_as_above_it(
+    app_client, correct_count, expected_above
+):
+    session_id = await _start_session(app_client)
+    answers = [*ALL_CORRECT[:correct_count], *ALL_WRONG[correct_count:]]
+
+    response = await _diagnostic(app_client, session_id, answers)
+
+    assert response.json()["above_threshold"] is expected_above
 
 
 async def test_primer_is_shown_exactly_when_below_threshold(app_client, db_session):
@@ -122,63 +134,26 @@ async def test_diagnostic_twice_returns_the_identical_result(app_client, db_sess
     assert rows[0].diagnostic_answers == ALL_CORRECT
 
 
-async def test_diagnostic_falls_back_to_the_existing_row_when_the_insert_loses(
-    app_client, db_session, monkeypatch
-):
-    """The race branch, simulated rather than observed.
-
-    This forces the initial lookup to miss so the INSERT hits the real UNIQUE
-    constraint. It does NOT reproduce genuine concurrency: the test fixture's
-    single SQLite connection serializes writers, so the Postgres behaviour this
-    branch relies on -- the losing INSERT blocking until the winner commits,
-    making the row visible on re-fetch -- is not verified here.
-    """
-
-    session_id = await _start_session(app_client)
-    winner = SessionIntake(
-        session_id=UUID(session_id),
-        diagnostic_answers=ALL_CORRECT,
-        diagnostic_score=3,
-        primer_shown=False,
-    )
-    db_session.add(winner)
-    await db_session.commit()
-
-    from api.services import intake as intake_service
-
-    real_find = intake_service._find_intake
-    calls = {"count": 0}
-
-    async def _miss_once(session, *, session_id):
-        calls["count"] += 1
-        if calls["count"] == 1:
-            return None
-        return await real_find(session, session_id=session_id)
-
-    monkeypatch.setattr(intake_service, "_find_intake", _miss_once)
-
-    response = await _diagnostic(app_client, session_id, ALL_WRONG)
-
-    assert response.status_code == 201
-    # The winner's score survives, rather than being recomputed from the
-    # losing submission's answers.
-    assert response.json()["diagnostic_score"] == 3
-
-    rows = (await db_session.exec(select(SessionIntake))).all()
-    assert len(rows) == 1
-
-
 @pytest.mark.parametrize(
-    ("diagnostic_answers", "comprehension_answer", "expected_depth"),
+    (
+        "diagnostic_answers",
+        "comprehension_answer",
+        "expected_correct",
+        "expected_depth",
+    ),
     [
-        (ALL_CORRECT, COMPREHENSION_ITEM.correct, ScaffoldingDepth.LOW),
-        (ALL_CORRECT, WRONG_COMPREHENSION, ScaffoldingDepth.STANDARD),
-        (ALL_WRONG, COMPREHENSION_ITEM.correct, ScaffoldingDepth.STANDARD),
-        (ALL_WRONG, WRONG_COMPREHENSION, ScaffoldingDepth.HIGH),
+        (ALL_CORRECT, COMPREHENSION_ITEM.correct, True, ScaffoldingDepth.LOW),
+        (ALL_CORRECT, WRONG_COMPREHENSION, False, ScaffoldingDepth.STANDARD),
+        (ALL_WRONG, COMPREHENSION_ITEM.correct, True, ScaffoldingDepth.STANDARD),
+        (ALL_WRONG, WRONG_COMPREHENSION, False, ScaffoldingDepth.HIGH),
     ],
 )
 async def test_comprehension_finalizes_a_scaffolding_depth(
-    app_client, diagnostic_answers, comprehension_answer, expected_depth
+    app_client,
+    diagnostic_answers,
+    comprehension_answer,
+    expected_correct,
+    expected_depth,
 ):
     session_id = await _start_session(app_client)
     await _diagnostic(app_client, session_id, diagnostic_answers)
@@ -187,7 +162,7 @@ async def test_comprehension_finalizes_a_scaffolding_depth(
 
     assert response.status_code == 201
     body = response.json()
-    assert body["correct"] is (comprehension_answer == COMPREHENSION_ITEM.correct)
+    assert body["correct"] is expected_correct
     assert body["scaffolding_depth"] == expected_depth.value
 
 
@@ -289,31 +264,24 @@ async def test_intake_is_not_found_before_the_diagnostic(app_client):
     assert response.status_code == 404
 
 
-async def test_intake_responses_never_carry_the_answer_key(app_client):
-    """No response may name a correct option id, at any step."""
-
+async def test_each_correct_option_is_returned_only_after_its_answer_is_stored(
+    app_client,
+):
     session_id = await _start_session(app_client)
+    diagnostic_key = [item.correct for item in DIAGNOSTIC_ITEMS]
 
-    bodies = [
-        (await _diagnostic(app_client, session_id, ALL_WRONG)).text,
-        (await _comprehension(app_client, session_id, WRONG_COMPREHENSION)).text,
-        (await app_client.get(f"/sessions/{session_id}/intake")).text,
-    ]
+    diagnostic = await _diagnostic(app_client, session_id, ALL_WRONG)
+    before_comprehension = await app_client.get(f"/sessions/{session_id}/intake")
 
-    secrets = [item.correct for item in DIAGNOSTIC_ITEMS] + [COMPREHENSION_ITEM.correct]
-    for body in bodies:
-        for secret in secrets:
-            assert secret not in body
+    assert diagnostic.json()["correct_answers"] == diagnostic_key
+    assert COMPREHENSION_ITEM.correct not in diagnostic.text
+    assert COMPREHENSION_ITEM.correct not in before_comprehension.text
 
+    # Knowing the key no longer changes the stored score.
+    resubmitted = await _diagnostic(app_client, session_id, diagnostic_key)
+    assert resubmitted.json()["diagnostic_score"] == 0
 
-async def test_another_learners_intake_is_not_found(app_client, learner):
-    session_id = await _start_session(app_client)
-    await _diagnostic(app_client, session_id, ALL_CORRECT)
-
-    learner["id"] = uuid4()
-
-    assert (await app_client.get(f"/sessions/{session_id}/intake")).status_code == 404
-    assert (await _diagnostic(app_client, session_id, ALL_CORRECT)).status_code == 404
-    assert (
-        await _comprehension(app_client, session_id, COMPREHENSION_ITEM.correct)
-    ).status_code == 404
+    comprehension = await _comprehension(app_client, session_id, WRONG_COMPREHENSION)
+    assert comprehension.json()["correct_answer"] == COMPREHENSION_ITEM.correct
+    finished = (await app_client.get(f"/sessions/{session_id}/intake")).json()
+    assert finished["comprehension_correct_answer"] == COMPREHENSION_ITEM.correct

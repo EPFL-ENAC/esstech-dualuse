@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.db import get_db_session
-from api.dependencies import get_current_learner
+from api.dependencies import get_researcher_session
+from api.models import Session
+from api.services.contrast import CounterCaseResponse
 from api.services.researcher import (
     ComparisonSetResult,
     GateAndPostureResult,
@@ -14,7 +16,6 @@ from api.services.researcher import (
     RevealComparison,
     SetContrastResponse,
     SetContrastSubmission,
-    SetCounterCaseResponse,
     TagResult,
     TagSubmission,
     TechnologyIntakeCreate,
@@ -38,9 +39,8 @@ from api.services.researcher_report import (
     ResearcherSessionReport,
     get_researcher_session_report,
 )
-from api.services.sessions import get_owned_session
 
-router = APIRouter()
+router = APIRouter(tags=["Researcher"])
 
 
 @router.post(
@@ -53,21 +53,15 @@ router = APIRouter()
         "description. Repeating the call returns the stored intake without "
         "overwriting it. The mapping loop happens in /tag, not here."
     ),
-    tags=["Researcher"],
 )
 async def post_researcher_intake(
-    session_id: UUID,
     body: TechnologyIntakeCreate,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> TechnologyIntakeCreated:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
     return await create_technology_intake(
         session,
-        session_id=session_id,
-        route=owned_session.route,
+        session_id=owned.id,
         raw_description=body.raw_description,
     )
 
@@ -80,19 +74,12 @@ async def post_researcher_intake(
         "Return this session's stored technology intake so a reloaded page "
         "can resume mid-flow. 404s if no intake has been started yet."
     ),
-    tags=["Researcher"],
 )
 async def get_researcher_intake(
-    session_id: UUID,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> TechnologyIntakeState:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
-    return await get_technology_intake(
-        session, session_id=session_id, route=owned_session.route
-    )
+    return await get_technology_intake(session, session_id=owned.id)
 
 
 @router.post(
@@ -106,21 +93,15 @@ async def get_researcher_intake(
         "many attempts remain are reported so the caller never has to "
         "track the budget itself."
     ),
-    tags=["Researcher"],
 )
 async def post_researcher_tag(
-    session_id: UUID,
     body: TagSubmission,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> TagResult:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
     return await submit_tag(
         session,
-        session_id=session_id,
-        route=owned_session.route,
+        session_id=owned.id,
         domain=body.domain,
         functions=body.functions,
         forms=body.forms,
@@ -137,21 +118,15 @@ async def post_researcher_tag(
         "meaningful once the technology mapping is complete, and one-shot "
         "once submitted."
     ),
-    tags=["Researcher"],
 )
 async def post_researcher_gate_and_posture(
-    session_id: UUID,
     body: GateAndPostureSubmission,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> GateAndPostureResult:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
     return await set_gate_and_posture(
         session,
-        session_id=session_id,
-        route=owned_session.route,
+        session_id=owned.id,
         gate=body.gate,
         posture_response=body.posture_response,
     )
@@ -165,19 +140,12 @@ async def post_researcher_gate_and_posture(
         "Match the session's technology intake against the case corpus. "
         "Computed once, then returned unchanged on every later call."
     ),
-    tags=["Researcher"],
 )
 async def post_researcher_comparison_set(
-    session_id: UUID,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> ComparisonSetResult:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
-    return await build_comparison_set(
-        session, session_id=session_id, route=owned_session.route
-    )
+    return await build_comparison_set(session, session_id=owned.id)
 
 
 @router.get(
@@ -192,22 +160,16 @@ async def post_researcher_comparison_set(
         "session has a submitted prediction. 404s if case_id is not among "
         "this session's comparison-set cases."
     ),
-    tags=["Researcher"],
 )
 async def get_researcher_case(
-    session_id: UUID,
     case_id: UUID,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> ResearcherCaseDetail:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
     return await get_researcher_case_detail(
         session,
-        session_id=session_id,
+        session_id=owned.id,
         case_id=case_id,
-        route=owned_session.route,
     )
 
 
@@ -221,21 +183,15 @@ async def get_researcher_case(
         "entries, ranks 1..N with no gaps or duplicates). A second "
         "submission for the same session is rejected."
     ),
-    tags=["Researcher"],
 )
 async def post_researcher_prediction(
-    session_id: UUID,
     body: PredictionSubmission,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> PredictionSubmissionResult:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
     return await submit_prediction(
         session,
-        session_id=session_id,
-        route=owned_session.route,
+        session_id=owned.id,
         predictions=body.predictions,
     )
 
@@ -250,44 +206,29 @@ async def post_researcher_prediction(
         "underlying data never changes once the comparison set and "
         "prediction exist, so there is nothing to store separately."
     ),
-    tags=["Researcher"],
 )
 async def post_researcher_reveal(
-    session_id: UUID,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> RevealComparison:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
-    return await reveal_prediction_comparison(
-        session, session_id=session_id, route=owned_session.route
-    )
+    return await reveal_prediction_comparison(session, session_id=owned.id)
 
 
 @router.get(
     "/sessions/{session_id}/researcher/counter-case",
-    response_model=SetCounterCaseResponse,
+    response_model=CounterCaseResponse,
     summary="Look up the comparison set's counter-case",
     description=(
         "Report whether any case in the session's comparison set has a "
         "linked counter-case, and if so, its gate lever and responsibility "
-        "posture contrast -- shown before the contrast reflection question, "
-        "the same way Student's GET /encounters/{id}/counter-case is."
+        "posture contrast, to show before the contrast reflection question."
     ),
-    tags=["Researcher"],
 )
 async def get_researcher_counter_case(
-    session_id: UUID,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
-) -> SetCounterCaseResponse:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
-    return await look_up_set_counter_case(
-        session, session_id=session_id, route=owned_session.route
-    )
+) -> CounterCaseResponse:
+    return await look_up_set_counter_case(session, session_id=owned.id)
 
 
 @router.post(
@@ -301,21 +242,15 @@ async def get_researcher_counter_case(
         "server-side, never trusted from the request. Computed once, then "
         "returned unchanged on every later call."
     ),
-    tags=["Researcher"],
 )
 async def post_researcher_contrast(
-    session_id: UUID,
     body: SetContrastSubmission,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> SetContrastResponse:
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
     return await submit_set_contrast(
         session,
-        session_id=session_id,
-        route=owned_session.route,
+        session_id=owned.id,
         learner_response=body.learner_response,
     )
 
@@ -331,13 +266,9 @@ async def post_researcher_contrast(
         "set-level contrast. Minimal when the trace has not reached "
         "contrast yet, rather than empty lists or zeroed counts."
     ),
-    tags=["Researcher"],
 )
 async def get_researcher_report(
-    session_id: UUID,
+    owned: Session = Depends(get_researcher_session),
     session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
 ) -> ResearcherSessionReport:
-    return await get_researcher_session_report(
-        session, session_id=session_id, learner_id=learner_id
-    )
+    return await get_researcher_session_report(session, session_id=owned.id)

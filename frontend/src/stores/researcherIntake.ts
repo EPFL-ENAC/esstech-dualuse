@@ -2,29 +2,18 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 import type {
-  Domain,
-  Form,
-  Function,
   GateAndPostureResult,
   MappingStatus,
   TagResult,
   TechnologyIntakeCreated,
   TechnologyIntakeState,
 } from 'src/api/researcher';
-import type { Gate } from 'src/api/student';
+import type { Domain, Form, Function, Gate } from 'src/api/taxonomy';
 
 export type ResearcherIntakeStep =
   'description' | 'tagging' | 'exhausted' | 'gate-and-posture' | 'done';
 
-/**
- * In-progress state for the Researcher intake -> tag -> gate-and-posture
- * flow, the Researcher-route counterpart of stores/intake.ts.
- *
- * A sibling of the researcher store (which only holds the session), the
- * same reason intake.ts is a sibling of the student store rather than part
- * of it: this needs a step field and the accumulated intake facets, a
- * different shape from "the session, once created."
- */
+/** In-progress state for the Researcher intake -> tag -> gate-and-posture flow. */
 export const useResearcherIntakeStore = defineStore(
   'researcherIntake',
   () => {
@@ -34,20 +23,12 @@ export const useResearcherIntakeStore = defineStore(
     const functions = ref<Function[]>([]);
     const forms = ref<Form[]>([]);
     const mappingStatus = ref<MappingStatus | null>(null);
+    const attemptsUsed = ref(0);
     const attemptsRemaining = ref<number | null>(null);
     const gate = ref<Gate | null>(null);
     const postureResponse = ref<string | null>(null);
 
-    // Whether at least one /tag attempt has been submitted. Derived, not
-    // stored: within the 'tagging' step, attemptsRemaining only ever takes
-    // 2 (the untouched MAX_TAG_ATTEMPTS budget, backend api/services/
-    // researcher.py) or 1 (one attempt spent) -- 0 always means MAPPED or
-    // 'exhausted', neither of which renders this. attemptsRemaining < 2
-    // already distinguishes "never attempted" from "attempted once" on its
-    // own, so this needs no separate field to track alongside it.
-    const hasAttemptedTag = computed(
-      () => attemptsRemaining.value !== null && attemptsRemaining.value < 2,
-    );
+    const hasAttemptedTag = computed(() => attemptsUsed.value > 0);
 
     function setStep(value: ResearcherIntakeStep): void {
       step.value = value;
@@ -64,11 +45,8 @@ export const useResearcherIntakeStore = defineStore(
       functions.value = value.functions;
       forms.value = value.forms;
       mappingStatus.value = value.mapping_status;
+      attemptsUsed.value = value.attempts_used;
       attemptsRemaining.value = value.attempts_remaining;
-      // Reaching MAPPED or exhausting the budget both stop the tag loop;
-      // MAPPED still requires an explicit "Continue" click (rendered
-      // inside the 'tagging' step itself, based on mappingStatus) before
-      // moving on, the same way M0 never auto-advances a step either.
       if (value.mapping_status !== 'mapped' && value.attempts_remaining === 0) {
         step.value = 'exhausted';
       }
@@ -87,6 +65,7 @@ export const useResearcherIntakeStore = defineStore(
       functions.value = state.functions;
       forms.value = state.forms;
       mappingStatus.value = state.mapping_status;
+      attemptsUsed.value = state.attempts_used;
       attemptsRemaining.value = state.attempts_remaining;
       gate.value = state.gate;
       postureResponse.value = state.posture_response;
@@ -109,6 +88,7 @@ export const useResearcherIntakeStore = defineStore(
       functions.value = [];
       forms.value = [];
       mappingStatus.value = null;
+      attemptsUsed.value = 0;
       attemptsRemaining.value = null;
       gate.value = null;
       postureResponse.value = null;
@@ -121,6 +101,7 @@ export const useResearcherIntakeStore = defineStore(
       functions,
       forms,
       mappingStatus,
+      attemptsUsed,
       attemptsRemaining,
       hasAttemptedTag,
       gate,

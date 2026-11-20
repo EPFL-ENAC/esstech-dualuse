@@ -42,6 +42,7 @@ In one shell, run:
 ```bash
 make run-db
 make db-upgrade
+make db-seed
 make run-backend
 ```
 
@@ -78,46 +79,6 @@ make db-revision name="describe the change"
 
 The `name` argument in `db-revision` is required and becomes the migration message.
 
-## Standalone package (backend/package)
-
-The `backend/package/` directory is a standalone Python package (`dualuse`). It is:
-
-- a **uv workspace member** of the `backend/` project (`[tool.uv.workspace]`), and
-- installed as a regular **dependency** of the backend via `[tool.uv.sources]`,
-  so the FastAPI app can `import dualuse` directly.
-
-This keeps the package independently editable and testable while linking it into the
-backend at install time (locally and in the Docker image, where it is copied and resolved
-from the workspace).
-
-The package has its own tooling under `backend/package/`:
-
-```bash
-cd backend/package
-make install   # create a uv venv and install with dev dependencies
-make test      # run pytest
-make lint      # run ruff
-make format    # run ruff format
-```
-
-### Install backend/package from git
-
-Because it is a normal distributable Python package, you can also install `backend/package`
-directly from the repository, without cloning it first:
-
-```bash
-pip install "git+https://github.com/EPFL-ENAC/esstech-dualuse.git#subdirectory=backend/package"
-```
-
-You can also pin a specific branch or tag for reproducible installs:
-
-```bash
-pip install "git+https://github.com/EPFL-ENAC/esstech-dualuse.git@main#subdirectory=backend/package"
-```
-
-To use the package inside another project, add the git URL above to that project's
-dependencies, for example in `requirements.txt` or in `pyproject.toml`.
-
 ## Development
 
 ### Backend
@@ -128,11 +89,15 @@ The backend is a FastAPI application under `backend/api/`. The project layout is
 | --- | --- |
 | `backend/api/main.py` | Application and router registration |
 | `backend/api/config.py` | Pydantic settings loaded from `.env` |
-| `backend/api/db.py` | Async engine and session helpers |
+| `backend/api/db.py` | Async engine, session dependency, startup schema check |
+| `backend/api/dependencies.py` | Learner identity and session/encounter ownership checks |
+| `backend/api/cookies.py` | Cookie attributes shared by every cookie the API sets |
+| `backend/api/content/` | Intake answer key and scoring rules (placeholder content) |
 | `backend/api/models/` | SQLModel table models |
 | `backend/api/services/` | Business logic |
 | `backend/api/views/` | FastAPI routers (endpoints) |
 | `backend/migrations/` | Alembic migration scripts |
+| `backend/scripts/` | Case seeding (`make db-seed`) and the e2e database reset |
 | `backend/tests/` | pytest test suite |
 
 To run backend checks:
@@ -140,7 +105,7 @@ To run backend checks:
 ```bash
 cd backend
 make test      # run pytest
-make lint      # run ruff
+make lint      # sort imports with ruff
 make format    # run ruff format
 make typecheck # run ty
 ```
@@ -151,6 +116,9 @@ The frontend is a Quasar v2 SPA under `frontend/src/`. The project layout is:
 
 | Path | Purpose |
 | --- | --- |
+| `frontend/src/api/` | Typed API clients and the taxonomy shared with the backend |
+| `frontend/src/content/` | Static learner-facing content and option lists |
+| `frontend/src/composables/` | Shared page logic (error state, reveal → contrast sequence) |
 | `frontend/src/router/` | Vue Router routes |
 | `frontend/src/layouts/` | Page layouts |
 | `frontend/src/pages/` | Page components |
@@ -168,37 +136,21 @@ npm run format    # run prettier
 npm run typecheck # run vue-tsc
 ```
 
-### LLM
-
-The backend includes a minimal example for using the OpenAI library. Configuration
-lives in `api/config.py` (and `.env`):
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `OPENAI_API_URL` | `https://inference-rcp.epfl.ch/v1` | Base URL of the OpenAI-compatible API (EPFL inference) |
-| `OPENAI_API_KEY` | (none) | API key. **Required**; must be set in `.env` (see below). |
-| `MODEL_NAME` | `deepseek-ai/DeepSeek-V4-Flash-0731` | Model used for completions |
-
-The `OPENAI_API_KEY` is **required and has no default value**. You must set it in your
-local `.env` file (created from `.env.example` by `make install`):
+End-to-end tests (Playwright) start their own backend and frontend against a
+dedicated `app_e2e` database, which they reset, migrate and seed first. Start
+the database (`make run-db` from the repo root), stop any running dev servers,
+then:
 
 ```bash
-# .env
-OPENAI_API_KEY=your-real-key-here
+cd frontend
+npm run test:e2e
 ```
 
-Without it, the application fails to start with a settings validation error.
+### Google sign-in
 
-The `complete()` helper in `api/llm.py` sends a prompt and returns the text answer:
-
-```python
-from api.llm import complete
-
-answer = await complete('Explain this project in one sentence.')
-```
-
-The shared `AsyncOpenAI` client is created lazily by `get_openai_client()`. It raises a
-clear error if you call it without a configured key.
+Google OAuth is optional. Without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+in `.env`, `/auth/google/*` answers 503 and learners are identified by a
+pseudonymous `dev_learner_id` cookie instead.
 
 ### Pre-commit hooks
 

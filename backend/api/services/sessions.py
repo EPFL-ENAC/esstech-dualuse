@@ -11,8 +11,7 @@ from api.services.errors import ConflictError, NotFoundError
 
 
 class SessionCreate(BaseModel):
-    """Request body for starting a session. Defaults to the Student route,
-    unchanged from before this field existed."""
+    """Request body for starting a session."""
 
     route: SessionRoute = SessionRoute.STUDENT
 
@@ -30,14 +29,9 @@ async def create_session(
     session: AsyncSession,
     *,
     learner_id: UUID,
-    route: SessionRoute = SessionRoute.STUDENT,
+    route: SessionRoute,
 ) -> SessionCreated:
-    """Start an individual session for this learner, on the given route.
-
-    route defaults to STUDENT, matching this function's behavior before
-    Researcher-route sessions could be created at all -- an existing
-    caller that never mentions route is unaffected.
-    """
+    """Start an individual session for this learner, on the given route."""
 
     record = Session(
         route=route,
@@ -55,16 +49,22 @@ async def create_session(
     )
 
 
-async def get_owned_session(
-    session: AsyncSession, *, session_id: UUID, learner_id: UUID
-) -> Session:
-    """Load a session, treating another learner's session as nonexistent.
+def require_route(actual: SessionRoute, expected: SessionRoute) -> None:
+    if actual != expected:
+        raise ConflictError(
+            f"Session is not a {expected.value.capitalize()}-route session"
+        )
 
-    Ownership-only, deliberately: this stays route-agnostic so both routes'
-    services can share it, the same way require_researcher_route
-    (api/services/researcher.py) and require_student_route below are two
-    separate, explicit checks rather than being folded in here.
-    """
+
+async def get_owned_session(
+    session: AsyncSession,
+    *,
+    session_id: UUID,
+    learner_id: UUID,
+    route: SessionRoute,
+) -> Session:
+    """Load a session, treating another learner's session as nonexistent, and
+    reject one that belongs to the other route."""
 
     record = (
         await session.exec(
@@ -76,20 +76,5 @@ async def get_owned_session(
     if record is None:
         raise NotFoundError("Session not found")
 
+    require_route(record.route, route)
     return record
-
-
-def require_student_route(route: SessionRoute) -> None:
-    """Reject a session that is not on the Student route.
-
-    Symmetric to require_researcher_route (api/services/researcher.py):
-    ownership alone (get_owned_session/get_owned_encounter) only confirms
-    whose session this is, not which flow it belongs to. Every Student-route
-    service function calls this immediately after obtaining the session's
-    route -- directly from get_owned_session, or via a second
-    get_owned_session lookup keyed on encounter.session_id for the
-    encounter-scoped ones, since CaseEncounter itself carries no route.
-    """
-
-    if route != SessionRoute.STUDENT:
-        raise ConflictError("Session is not a Student-route session")

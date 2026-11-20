@@ -10,6 +10,13 @@ from api.models.enums import CaseStatus, CaseType, Domain
 CANDIDATE_LIMIT = 3
 
 
+def offerable_cases():
+    """The conditions under which a case may be offered to a learner on either
+    route. Archived cases stay in the table so past encounters still resolve."""
+
+    return (Case.status == CaseStatus.PUBLISHED, Case.case_type == CaseType.HARM)
+
+
 class CaseCandidate(BaseModel):
     """A case as shown before the learner commits.
 
@@ -53,11 +60,7 @@ async def list_candidate_cases(
     candidates = (
         await session.exec(
             select(Case)
-            .where(
-                Case.status == CaseStatus.PUBLISHED,
-                Case.case_type == CaseType.HARM,
-                col(Case.id).not_in(encountered),
-            )
+            .where(*offerable_cases(), col(Case.id).not_in(encountered))
             # Ordered so repeated calls are stable rather than arbitrary.
             .order_by(col(Case.created_at), col(Case.id))
             .limit(CANDIDATE_LIMIT)

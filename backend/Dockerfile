@@ -16,7 +16,6 @@ COPY start.sh /app/
 COPY api /app/api
 COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
-COPY package /app/package
 
 RUN uv pip install --system --no-cache-dir -e /app
 

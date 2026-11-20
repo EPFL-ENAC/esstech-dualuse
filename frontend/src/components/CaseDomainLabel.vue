@@ -6,8 +6,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-
-import type { Domain } from 'src/api/researcher';
+import type { Domain } from 'src/api/taxonomy';
 
 defineOptions({ name: 'CaseDomainLabel' });
 

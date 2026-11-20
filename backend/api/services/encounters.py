@@ -8,10 +8,12 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.models import Case, CaseEncounter, Commitment, Session
-from api.models.enums import CaseStatus, CaseType, Gate, Pattern
-from api.services.cases import CaseCandidate, to_candidate
+from api.models.enums import Gate, Pattern, SessionRoute
+from api.models.session import MAX_ENCOUNTERS_PER_SESSION
+from api.services.cases import CaseCandidate, offerable_cases, to_candidate
 from api.services.errors import ConflictError, NotFoundError
-from api.services.sessions import get_owned_session, require_student_route
+from api.services.persistence import insert_once
+from api.services.sessions import require_route
 
 
 class EncounterCreate(BaseModel):
@@ -55,16 +57,13 @@ async def get_owned_encounter(
 ) -> CaseEncounter:
     """Load an encounter, treating another learner's encounter as nonexistent.
 
-    Ownership-only, deliberately: stays route-agnostic like get_owned_session
-    (api/services/sessions.py). CaseEncounter carries no route itself, so
-    every encounter-scoped caller (create_commitment below, feedback.py,
-    contrast.py) follows this with a get_owned_session lookup keyed on
-    encounter.session_id, then require_student_route on its result.
+    Encounters exist only on the Student route, so a session of the other
+    route is rejected here too.
     """
 
-    record = (
+    row = (
         await session.exec(
-            select(CaseEncounter)
+            select(CaseEncounter, Session)
             .join(Session, onclause=col(Session.id) == col(CaseEncounter.session_id))
             .where(
                 col(CaseEncounter.id) == encounter_id,
@@ -72,30 +71,21 @@ async def get_owned_encounter(
             )
         )
     ).first()
-    if record is None:
+    if row is None:
         raise NotFoundError("Encounter not found")
 
-    return record
+    encounter, owner = row
+    require_route(owner.route, SessionRoute.STUDENT)
+    return encounter
 
 
 async def create_encounter(
-    session: AsyncSession, *, session_id: UUID, learner_id: UUID, case_id: UUID
+    session: AsyncSession, *, session_id: UUID, case_id: UUID
 ) -> EncounterCreated:
     """Select a case into a session as its next encounter."""
 
-    owned_session = await get_owned_session(
-        session, session_id=session_id, learner_id=learner_id
-    )
-    require_student_route(owned_session.route)
-
     case = (
-        await session.exec(
-            select(Case).where(
-                Case.id == case_id,
-                Case.status == CaseStatus.PUBLISHED,
-                Case.case_type == CaseType.HARM,
-            )
-        )
+        await session.exec(select(Case).where(Case.id == case_id, *offerable_cases()))
     ).first()
     if case is None:
         raise NotFoundError("Case not found")
@@ -107,6 +97,8 @@ async def create_encounter(
     ).all()
     if any(encounter.case_id == case_id for encounter in existing):
         raise ConflictError("Case already selected in this session")
+    if len(existing) >= MAX_ENCOUNTERS_PER_SESSION:
+        raise ConflictError("Session cannot accept another encounter")
 
     record = CaseEncounter(
         session_id=session_id, case_id=case_id, sequence_no=len(existing) + 1
@@ -116,9 +108,8 @@ async def create_encounter(
         await session.flush()
     except IntegrityError as exc:
         await session.rollback()
-        # Either the 3-encounter cap (sequence_no would exceed 3) or a
-        # concurrent request that claimed this sequence_no first. The database
-        # settles both, so no locking is needed to read the count above.
+        # A concurrent request claimed this sequence_no first; the
+        # (session_id, sequence_no) UNIQUE constraint settles the race.
         raise ConflictError("Session cannot accept another encounter") from exc
     await session.commit()
 
@@ -134,44 +125,40 @@ async def create_encounter(
 async def create_commitment(
     session: AsyncSession,
     *,
-    encounter_id: UUID,
-    learner_id: UUID,
+    encounter: CaseEncounter,
     pattern: Pattern,
     gate: Gate,
     framing_answers: dict[str, Any],
 ) -> CommitmentCreated:
     """Store the learner's interpretation of an encounter.
 
-    One commitment per encounter for now. This is enforced here rather than by
-    a unique constraint on purpose: `Commitment` is keyed on
-    (case_encounter_id, sequence_no) so a future group re-vote can add a second
-    row without overwriting the first.
+    One commitment per encounter for now. `Commitment` is keyed on
+    (case_encounter_id, sequence_no) so a future group re-vote can add a
+    second row without overwriting the first.
     """
 
-    encounter = await get_owned_encounter(
-        session, encounter_id=encounter_id, learner_id=learner_id
-    )
-    owned_session = await get_owned_session(
-        session, session_id=encounter.session_id, learner_id=learner_id
-    )
-    require_student_route(owned_session.route)
+    encounter_id = encounter.id
 
-    already_committed = (
-        await session.exec(
-            select(Commitment).where(Commitment.case_encounter_id == encounter.id)
-        )
-    ).first()
-    if already_committed is not None:
+    async def find_existing() -> Commitment | None:
+        return (
+            await session.exec(
+                select(Commitment).where(Commitment.case_encounter_id == encounter_id)
+            )
+        ).first()
+
+    record, created = await insert_once(
+        session,
+        Commitment(
+            case_encounter_id=encounter_id,
+            sequence_no=1,
+            pattern=pattern,
+            gate=gate,
+            framing_answers=framing_answers,
+        ),
+        find_existing,
+    )
+    if not created:
         raise ConflictError("Encounter already has a commitment")
-
-    record = Commitment(
-        case_encounter_id=encounter.id,
-        sequence_no=1,
-        pattern=pattern,
-        gate=gate,
-        framing_answers=framing_answers,
-    )
-    session.add(record)
     await session.commit()
 
     return CommitmentCreated(

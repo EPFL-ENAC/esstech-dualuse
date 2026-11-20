@@ -46,13 +46,8 @@ def _make_case(title: str, *, case_type: CaseType = CaseType.HARM) -> Case:
 async def _make_comparison_set(
     db_session, *, session_id: str, case_ids: list[UUID]
 ) -> None:
-    """Insert a ComparisonSet + its cases directly.
-
-    Bypasses the real intake/tag/build-comparison-set flow: this file only
-    needs a comparison set to exist to test the counter-case lookup, the
-    same reasoning test_student_route_guard.py gives for inserting a
-    CaseEncounter directly rather than going through create_encounter.
-    """
+    """Insert a ComparisonSet directly: the counter-case lookup only needs one
+    to exist, not one produced by matching against the corpus."""
 
     comparison_set = ComparisonSet(
         session_id=UUID(session_id),
@@ -110,7 +105,7 @@ RESEARCHER_ENDPOINTS = [
 async def test_researcher_endpoint_rejects_student_route_session(
     app_client, method, path_template, body
 ):
-    session_id = await _start_session(app_client)  # defaults to Student route
+    session_id = await _start_session(app_client)
     url = path_template.format(id=session_id)
 
     if method == "get":
@@ -187,6 +182,7 @@ async def test_get_intake_returns_the_full_stored_state(app_client):
     )
     assert tag_response.status_code == 200
     assert tag_response.json()["attempts_remaining"] == 1
+    assert tag_response.json()["attempts_used"] == 1
 
     response = await app_client.get(f"/sessions/{session_id}/researcher/intake")
 
@@ -196,16 +192,12 @@ async def test_get_intake_returns_the_full_stored_state(app_client):
     assert body["raw_description"] == "a quantum thing"
     assert body["mapping_status"] == "unmapped"
     assert body["attempts_remaining"] == 1
+    assert body["attempts_used"] == 1
     assert body["gate"] is None
     assert body["posture_response"] is None
 
 
 async def test_get_intake_before_any_tag_attempt_reports_full_budget(app_client):
-    """A fresh, never-tagged intake reports attempts_remaining=2 (the full
-    MAX_TAG_ATTEMPTS budget) -- distinct from the 1 a real /tag response
-    reports after a single spent attempt, and from the 0 either an
-    exhausted or a mapped intake reports."""
-
     session_id = await _start_session(app_client, route="researcher")
     await app_client.post(
         f"/sessions/{session_id}/researcher/intake",
@@ -216,6 +208,7 @@ async def test_get_intake_before_any_tag_attempt_reports_full_budget(app_client)
 
     assert response.status_code == 200
     assert response.json()["attempts_remaining"] == 2
+    assert response.json()["attempts_used"] == 0
 
 
 async def test_get_counter_case_409s_without_a_comparison_set(app_client):
@@ -224,10 +217,7 @@ async def test_get_counter_case_409s_without_a_comparison_set(app_client):
     response = await app_client.get(f"/sessions/{session_id}/researcher/counter-case")
 
     assert response.status_code == 409
-    assert (
-        response.json()["detail"]
-        == "Session has no comparison set to check for a counter-case"
-    )
+    assert response.json()["detail"] == "Session has no comparison set yet"
 
 
 async def test_get_counter_case_reports_no_counter_case_for_an_open_area_set(

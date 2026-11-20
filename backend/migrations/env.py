@@ -10,33 +10,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 from sqlmodel.sql.sqltypes import AutoString
 
+# Importing the package registers every table on SQLModel.metadata.
+import api.models  # noqa: F401
 from api.config import config as app_config
-from api.models import (
-    Case,
-    CaseEncounter,
-    CaseTaggedGate,
-    CaseTaggedPattern,
-    Commitment,
-    ContrastEntry,
-    CounterCaseLink,
-    FeedbackRecord,
-    Item,
-    Session,
-)
-
-# Import the models so their tables are registered on SQLModel.metadata.
-_models = (
-    Case,
-    CaseEncounter,
-    CaseTaggedGate,
-    CaseTaggedPattern,
-    Commitment,
-    ContrastEntry,
-    CounterCaseLink,
-    FeedbackRecord,
-    Item,
-    Session,
-)
 
 config = context.config
 

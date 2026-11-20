@@ -4,8 +4,6 @@ The API and these tests share one database session (see the `app_client`
 fixture), so fixture rows must be committed before any API call.
 """
 
-from uuid import uuid4
-
 import pytest
 from sqlmodel import select
 
@@ -159,9 +157,9 @@ async def test_open_area_ignores_any_client_supplied_response(app_client, db_ses
     body = response.json()
     assert body["contrast_type"] == "open_area"
     assert body["counter_case_id"] is None
-    # The client's text is discarded, not merely ignored on read: the stored
-    # row itself must never carry input for a branch that asked nothing.
     assert body["learner_response"] is None
+    stored = (await db_session.exec(select(ContrastEntry))).one()
+    assert stored.learner_response is None
 
 
 async def test_contrast_submission_twice_returns_the_identical_entry(
@@ -187,17 +185,3 @@ async def test_contrast_submission_twice_returns_the_identical_entry(
 
     entries = (await db_session.exec(select(ContrastEntry))).all()
     assert len(entries) == 1
-
-
-async def test_another_learners_encounter_is_not_found(app_client, db_session, learner):
-    case = _make_case()
-    encounter_id = await _encounter_for(app_client, db_session, case)
-
-    learner["id"] = uuid4()
-    counter_case = await app_client.get(f"/encounters/{encounter_id}/counter-case")
-    contrast = await app_client.post(
-        f"/encounters/{encounter_id}/contrast", json={"learner_response": "x"}
-    )
-
-    assert counter_case.status_code == 404
-    assert contrast.status_code == 404

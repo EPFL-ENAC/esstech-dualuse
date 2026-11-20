@@ -6,8 +6,8 @@ for content that has not been written yet.
 
 This module is the *only* place the correct answers exist. The frontend's
 `src/content/intake.ts` carries the same item and option ids with their prompts
-and labels, and never carries which option is right; responses report outcomes
-(a score, a boolean) and never an option id.
+and labels, never which option is right: api/services/intake.py returns an
+item's correct option only after the learner's answer to it is stored.
 
 The two files are kept aligned by hand. Changing an id here means changing it
 there in the same commit, or scoring silently breaks -- `KeyedItem.options`
@@ -29,7 +29,7 @@ class KeyedItem:
     # unknown ids outright: knowing which ids are *valid* reveals nothing
     # about which one is *correct*.
     options: tuple[str, ...]
-    # Never leaves the backend, in any response, at any point in the flow.
+    # Returned only after the learner's answer to this item is stored.
     correct: str
 
 

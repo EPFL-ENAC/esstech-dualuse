@@ -7,14 +7,11 @@
         <div class="text-subtitle2 text-grey-7">{{ t('routeChoiceIntro') }}</div>
       </div>
 
-      <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
-        <template #avatar><q-icon name="warning" color="negative" /></template>
-        <div class="text-weight-medium">{{ t('errorTitle') }}</div>
-        <div>{{ errorMessage }}</div>
+      <ErrorBanner v-if="errorMessage" :message="errorMessage">
         <template #action>
-          <q-btn flat :label="t('errorRetry')" @click="retry" />
+          <q-btn flat :label="t('errorRetry')" @click="chooseResearcher" />
         </template>
-      </q-banner>
+      </ErrorBanner>
 
       <div class="row q-col-gutter-md">
         <div class="col-12 col-sm-6">
@@ -29,7 +26,7 @@
                 color="primary"
                 unelevated
                 :label="t('routeChoiceStudentAction')"
-                :disable="choosing !== null"
+                :disable="choosing"
                 @click="chooseStudent"
               />
             </q-card-actions>
@@ -51,13 +48,9 @@
               <q-btn
                 color="primary"
                 unelevated
-                :label="
-                  choosing === 'researcher'
-                    ? t('routeChoiceStarting')
-                    : t('routeChoiceResearcherAction')
-                "
-                :loading="choosing === 'researcher'"
-                :disable="choosing !== null"
+                :label="choosing ? t('routeChoiceStarting') : t('routeChoiceResearcherAction')"
+                :loading="choosing"
+                :disable="choosing"
                 @click="chooseResearcher"
               />
             </q-card-actions>
@@ -73,9 +66,9 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import { ApiError } from 'boot/api';
+import ErrorBanner from 'components/ErrorBanner.vue';
+import { useErrorMessage } from 'src/composables/useApiError';
 import { createSession } from 'src/api/sessions';
-import { useResearcherIntakeStore } from 'stores/researcherIntake';
 import { useResearcherStore } from 'stores/researcher';
 
 defineOptions({
@@ -85,48 +78,24 @@ defineOptions({
 const { t } = useI18n();
 const router = useRouter();
 const researcherStore = useResearcherStore();
-const researcherIntakeStore = useResearcherIntakeStore();
+const { errorMessage, report } = useErrorMessage();
 
-const choosing = ref<'researcher' | null>(null);
-const errorMessage = ref('');
-// Which action actually produced errorMessage, so the retry button
-// re-invokes that action rather than assuming it's always the Researcher
-// one. Only 'researcher' is reachable today (chooseStudent makes no network
-// call and cannot fail), but retry() dispatches on this rather than
-// hardcoding that.
-const failedAction = ref<'researcher' | null>(null);
-
-function describe(error: unknown): string {
-  return error instanceof ApiError ? error.detail : t('errorUnexpected');
-}
+const choosing = ref(false);
 
 function chooseStudent(): void {
-  // No POST here: IntakePage.vue's own ensureSession() lazily creates the
-  // Student-route session on the first diagnostic submission, exactly as it
-  // does today. This screen changes nothing about that timing.
   void router.push('/intake');
 }
 
 async function chooseResearcher() {
-  choosing.value = 'researcher';
+  choosing.value = true;
   errorMessage.value = '';
-  failedAction.value = null;
   try {
-    const session = await createSession('researcher');
-    researcherIntakeStore.reset();
-    researcherStore.setSession(session);
+    researcherStore.setSession(await createSession('researcher'));
     await router.push('/researcher/intake');
   } catch (error) {
-    errorMessage.value = describe(error);
-    failedAction.value = 'researcher';
+    report(error);
   } finally {
-    choosing.value = null;
-  }
-}
-
-function retry(): void {
-  if (failedAction.value === 'researcher') {
-    void chooseResearcher();
+    choosing.value = false;
   }
 }
 </script>

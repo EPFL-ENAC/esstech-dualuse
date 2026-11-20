@@ -1,28 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+import type { CounterCaseResponse } from 'src/api/contrast';
 import type {
   ComparisonSetResult,
   PredictionSubmissionResult,
   RevealComparison,
   SetContrastResponse,
-  SetCounterCaseResponse,
 } from 'src/api/researcher';
 import type { SessionCreated } from 'src/api/sessions';
+import { useResearcherIntakeStore } from 'stores/researcherIntake';
 
-/**
- * Flow state for the Researcher/Individual path.
- *
- * A sibling of the student store, not part of it -- a Researcher-route
- * session has no business living in a store documented as Student-only.
- *
- * comparisonSet/prediction/reveal/counterCase/contrast mirror
- * useStudentStore's own encounter/commitment/reveal/counterCase/contrast
- * shape exactly: this is Blocco 6, the Researcher route's equivalent of
- * Student's ongoing work loop (not a one-time setup phase, which is why
- * it lives here rather than in its own store the way researcherIntake.ts
- * does for the intake/tag/gate setup phase).
- */
+/** Flow state for the Researcher/Individual path. */
 export const useResearcherStore = defineStore(
   'researcher',
   () => {
@@ -30,20 +19,18 @@ export const useResearcherStore = defineStore(
     const comparisonSet = ref<ComparisonSetResult | null>(null);
     const prediction = ref<PredictionSubmissionResult | null>(null);
     const reveal = ref<RevealComparison | null>(null);
-    const counterCase = ref<SetCounterCaseResponse | null>(null);
+    const counterCase = ref<CounterCaseResponse | null>(null);
     const contrast = ref<SetContrastResponse | null>(null);
 
+    /** A new session starts the whole route afresh, intake included. */
     function setSession(value: SessionCreated): void {
+      startOver();
       session.value = value;
-      clearComparisonSet();
     }
 
     function setComparisonSet(value: ComparisonSetResult): void {
+      clearComparisonSet();
       comparisonSet.value = value;
-      prediction.value = null;
-      reveal.value = null;
-      counterCase.value = null;
-      contrast.value = null;
     }
 
     function setPrediction(value: PredictionSubmissionResult): void {
@@ -54,7 +41,7 @@ export const useResearcherStore = defineStore(
       reveal.value = value;
     }
 
-    function setCounterCase(value: SetCounterCaseResponse): void {
+    function setCounterCase(value: CounterCaseResponse): void {
       counterCase.value = value;
     }
 
@@ -70,9 +57,11 @@ export const useResearcherStore = defineStore(
       contrast.value = null;
     }
 
-    function reset(): void {
+    /** Abandon the whole Researcher route, intake included, to begin again. */
+    function startOver(): void {
       session.value = null;
       clearComparisonSet();
+      useResearcherIntakeStore().reset();
     }
 
     return {
@@ -88,8 +77,7 @@ export const useResearcherStore = defineStore(
       setReveal,
       setCounterCase,
       setContrast,
-      clearComparisonSet,
-      reset,
+      startOver,
     };
   },
   { persist: true },

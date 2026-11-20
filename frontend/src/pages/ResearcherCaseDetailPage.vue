@@ -1,26 +1,14 @@
 <template>
   <q-page class="q-pa-md">
     <div class="researcher-case-detail-page column q-gutter-md">
-      <!-- UX only: landing here with no Researcher session is a broken
-           bookmark/back-button case, not a security boundary -- the real
-           enforcement is require_researcher_route server-side, already
-           closed. -->
-      <q-banner v-if="!researcherStore.session" class="bg-grey-2" rounded>
-        {{ t('researcherSessionMissing') }}
-        <template #action>
-          <q-btn flat :label="t('sessionStart')" to="/start" />
-        </template>
-      </q-banner>
+      <ResearcherSessionMissing v-if="!researcherStore.session" />
 
       <template v-else>
-        <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
-          <template #avatar><q-icon name="warning" color="negative" /></template>
-          <div class="text-weight-medium">{{ t('errorTitle') }}</div>
-          <div>{{ errorMessage }}</div>
+        <ErrorBanner v-if="errorMessage" :message="errorMessage">
           <template #action>
             <q-btn flat :label="t('errorRetry')" @click="errorMessage = ''" />
           </template>
-        </q-banner>
+        </ErrorBanner>
 
         <div v-else-if="loading" class="row items-center q-gutter-sm text-grey-7">
           <q-spinner size="24px" />
@@ -72,10 +60,8 @@
             </q-card-section>
           </q-card>
 
-          <!-- Gated: absent (not null) until the session has a submitted
-               prediction. Mirrors Student's own pre-reveal candidate card,
-               which simply omits this content with no placeholder
-               explanation. -->
+          <!-- The answer key is absent until the session has a submitted
+               prediction. -->
           <q-card v-if="detail.main_path_pattern" flat bordered>
             <q-card-section>
               <div class="text-caption text-grey-7">{{ t('revealMainPath') }}</div>
@@ -113,12 +99,14 @@
 </template>
 
 <script setup lang="ts">
-import CaseDomainLabel from 'components/CaseDomainLabel.vue';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
-import { ApiError } from 'boot/api';
+import CaseDomainLabel from 'components/CaseDomainLabel.vue';
+import ErrorBanner from 'components/ErrorBanner.vue';
+import ResearcherSessionMissing from 'components/ResearcherSessionMissing.vue';
+import { useErrorMessage } from 'src/composables/useApiError';
 import { getResearcherCaseDetail } from 'src/api/researcher';
 import type { InclusionReason, ResearcherCaseDetail } from 'src/api/researcher';
 import { GATE_DISPLAY_BY_ID, PATTERN_DISPLAY_BY_ID } from 'src/content/patterns';
@@ -135,16 +123,12 @@ const researcherStore = useResearcherStore();
 
 const detail = ref<ResearcherCaseDetail | null>(null);
 const loading = ref(false);
-const errorMessage = ref('');
+const { errorMessage, report } = useErrorMessage();
 
 const INCLUSION_REASON_LABEL_KEY: Record<InclusionReason, string> = {
   shared_function: 'researcherInclusionReasonSharedFunction',
   widened_by_domain: 'researcherInclusionReasonWidenedByDomain',
 };
-
-function describe(error: unknown): string {
-  return error instanceof ApiError ? error.detail : t('errorUnexpected');
-}
 
 async function loadCaseDetail() {
   const sessionId = researcherStore.session?.id;
@@ -158,7 +142,7 @@ async function loadCaseDetail() {
   try {
     detail.value = await getResearcherCaseDetail(sessionId, caseId);
   } catch (error) {
-    errorMessage.value = describe(error);
+    report(error);
   } finally {
     loading.value = false;
   }

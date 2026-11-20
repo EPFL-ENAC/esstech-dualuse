@@ -1,26 +1,14 @@
 <template>
   <q-page class="q-pa-md">
     <div class="researcher-complete-page column q-gutter-md">
-      <!-- UX only: landing here with no Researcher session is a broken
-           bookmark/back-button case, not a security boundary -- the real
-           enforcement is require_researcher_route server-side, already
-           closed. -->
-      <q-banner v-if="!researcherStore.session" class="bg-grey-2" rounded>
-        {{ t('researcherSessionMissing') }}
-        <template #action>
-          <q-btn flat :label="t('sessionStart')" to="/start" />
-        </template>
-      </q-banner>
+      <ResearcherSessionMissing v-if="!researcherStore.session" />
 
       <template v-else>
-        <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
-          <template #avatar><q-icon name="warning" color="negative" /></template>
-          <div class="text-weight-medium">{{ t('errorTitle') }}</div>
-          <div>{{ errorMessage }}</div>
-          <template #action>
-            <q-btn v-if="notFound" flat :label="t('researcherReset')" @click="startOver" />
+        <ErrorBanner v-if="errorMessage" :message="errorMessage">
+          <template v-if="notFound" #action>
+            <q-btn flat :label="t('researcherReset')" @click="startOver" />
           </template>
-        </q-banner>
+        </ErrorBanner>
 
         <div v-else-if="loading" class="row items-center q-gutter-sm text-grey-7">
           <q-spinner size="24px" />
@@ -162,9 +150,9 @@
               </q-card-section>
             </q-card>
 
-            <q-card v-if="report.reflection_prompt_key" flat bordered>
+            <q-card v-if="reflectionKey" flat bordered>
               <q-card-section>
-                <div class="text-body1">{{ t(report.reflection_prompt_key) }}</div>
+                <div class="text-body1">{{ t(reflectionKey) }}</div>
               </q-card-section>
             </q-card>
           </template>
@@ -183,11 +171,14 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import { ApiError } from 'boot/api';
+import ErrorBanner from 'components/ErrorBanner.vue';
+import ResearcherSessionMissing from 'components/ResearcherSessionMissing.vue';
+import { useOwnedResourceError } from 'src/composables/useApiError';
 import { getResearcherSessionReport } from 'src/api/researcher';
 import type { ResearcherSessionReport } from 'src/api/researcher';
 import { GATE_DISPLAY_BY_ID, PATTERN_DISPLAY_BY_ID } from 'src/content/patterns';
 import { FORM_LABEL_BY_ID, FUNCTION_LABEL_BY_ID } from 'src/content/researcher';
+import type { MessageKey } from 'src/i18n';
 import { useResearcherStore } from 'stores/researcher';
 
 defineOptions({
@@ -195,13 +186,12 @@ defineOptions({
 });
 
 const { t } = useI18n();
+const { errorMessage, notFound, report: handle } = useOwnedResourceError();
 const router = useRouter();
 const researcherStore = useResearcherStore();
 
 const report = ref<ResearcherSessionReport | null>(null);
 const loading = ref(false);
-const errorMessage = ref('');
-const notFound = ref(false);
 
 const hasMappingInfo = computed(() => {
   if (!report.value) {
@@ -214,15 +204,22 @@ const hasMappingInfo = computed(() => {
   );
 });
 
-function handle(error: unknown) {
-  if (error instanceof ApiError) {
-    notFound.value = error.status === 404;
-    errorMessage.value = error.status === 404 ? t('errorNotYours') : error.detail;
-    return;
+function reflectionKeyFor(value: ResearcherSessionReport): MessageKey | null {
+  switch (value.trace_completeness) {
+    case 'boundary_exit':
+      return 'researcherReflectionBoundaryExit';
+    case 'zero_pattern':
+      return 'researcherReflectionZeroPattern';
+    case 'full':
+      return value.top_prediction_is_dominant === true
+        ? 'researcherReflectionFullMatchesDominant'
+        : 'researcherReflectionFullDoesNotMatch';
+    case 'in_progress':
+      return null;
   }
-  notFound.value = false;
-  errorMessage.value = t('errorUnexpected');
 }
+
+const reflectionKey = computed(() => (report.value ? reflectionKeyFor(report.value) : null));
 
 async function loadReport() {
   if (!researcherStore.session) {
@@ -241,8 +238,8 @@ async function loadReport() {
 }
 
 function startOver() {
-  researcherStore.reset();
-  void router.push('/researcher/intake');
+  researcherStore.startOver();
+  void router.push('/start');
 }
 
 onMounted(() => {

@@ -1,12 +1,7 @@
 export default {
-  appTitle: 'Dark Mirror',
-
   goHome: "Retour à l'accueil",
   notFoundMessage: 'Désolé, il n’y a rien ici...',
 
-  welcome: 'Laboratoire de réflexion dual-use',
-  welcomeHint: 'Un espace guidé pour des décisions de recherche responsables.',
-  fetchMessage: 'Récupérer le message du backend',
   footerTagline:
     'Un espace de réflexion pour voir où la recherche pourrait mener, tant qu’il est encore temps de choisir autrement.',
   footerPurpose: 'Conçu pour la recherche et l’éducation responsables',
@@ -22,10 +17,6 @@ export default {
   landingMetaTime: '10–15 minutes',
   landingMetaPrivacy: 'Réflexion privée',
   landingMetaNoScore: 'Sans score ni jugement',
-  landingVisualQuestion: 'Où cette recherche pourrait-elle mener ?',
-  landingVisualHint: 'Arrêtez-vous au point de décision. Lisez les signaux. Choisissez une voie.',
-  landingVideoLabel: 'Perspectives dual-use',
-  landingPathsKicker: 'Adapté à votre perspective',
   landingPathsTitle: 'Deux voies vers la même question.',
   landingPathsBody:
     'Commencez par un cas réel ou par une technologie que vous connaissez. Les deux parcours rendent la responsabilité visible avant que l’issue ne soit figée.',
@@ -42,7 +33,6 @@ export default {
   landingResearcherFeatureOne: 'Basé sur une technologie',
   landingResearcherFeatureTwo: 'Ensemble comparatif',
   landingExploreRoute: 'Découvrir ce parcours',
-  landingHowKicker: "L'expérience",
   landingHowTitle: 'Une pause pour mieux décider.',
   landingHowBody:
     "Des cas réels vous aident à repérer les patterns récurrents, situer le gate de décision et réfléchir à qui porte la responsabilité, tant qu'il est encore possible d'agir.",
@@ -60,7 +50,6 @@ export default {
   landingStatementLabel: 'Pour étudiants & chercheurs',
 
   sessionStart: 'Démarrer une session',
-  studentOpenDev: 'Accès direct au parcours étudiant (dev)',
 
   routeChoiceTitle: 'Choisissez votre parcours',
   routeChoiceKicker: 'Votre perspective',
@@ -174,15 +163,14 @@ export default {
   intakeIntro: 'Quelques questions rapides pour préparer votre session.',
   intakeDiagnosticTitle: 'Trois questions rapides',
   intakeComprehensionTitle: 'Une dernière vérification',
-  intakeOneAttempt: 'Une seule tentative — la question ne sera pas reposée.',
-  intakeSubmit: 'Continuer',
   intakeCheckAnswers: 'Vérifier les réponses',
   intakeAnswerHintTitle: 'Un indice avant de continuer',
   intakeAnswerHintIntro: 'Repérez ces trois idées dans les questions ci-dessus :',
   intakeAnswersCorrect: 'Les trois réponses sont correctes. Vous pouvez continuer.',
-  intakeAnswersRetry:
-    'Vous pouvez modifier vos choix à l’aide de l’indice, ou continuer lorsque vous êtes prêt.',
+  intakeAnswersReview: 'Consultez les bonnes réponses, puis continuez lorsque vous êtes prêt.',
   intakeSubmitting: 'Enregistrement...',
+  intakeComprehensionCorrect: 'Bonne réponse. Vous pouvez continuer.',
+  intakeComprehensionCorrectAnswer: 'La bonne réponse : {answer}',
   intakePrimerContinue: 'Compris, continuer',
   intakeContinue: 'Continuer',
   intakeDoneTitle: 'Vous êtes prêt',
@@ -223,7 +211,6 @@ export default {
   commitmentSubmit: 'S’engager',
   commitmentSubmitting: 'Enregistrement de votre engagement...',
   commitmentSaved: 'Engagement enregistré. Vous pouvez révéler le cas.',
-  commitmentIncomplete: 'Choisissez d’abord un pattern et un gate.',
 
   revealAction: 'Révéler le cas',
   revealLoading: 'Révélation du cas...',
@@ -256,7 +243,6 @@ export default {
   completeDecisionPointsLabel: 'Gates examinés',
   completePatternsSelectedLabel: 'Patterns sélectionnés',
   completeMatchBreakdownLabel: 'Répartition des correspondances',
-  completeCounterCaseReflectionsLabel: 'Réflexions sur les cas-jumeaux complétées',
   completeSuggestedFocusLabel: 'Prochain point à explorer',
 
   scaffoldingLabel: "Niveau d'accompagnement",

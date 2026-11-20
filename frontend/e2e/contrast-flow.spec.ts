@@ -1,18 +1,17 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { BACKEND_URL } from '../playwright.config';
+
 /**
- * M5: the post-reveal contrast reflection and the "another case?" loop.
+ * The post-reveal contrast reflection and the "another case?" loop.
  *
- * Uses the dev bypass (`/student`) rather than the real front door: the M0
- * intake flow itself is already covered end-to-end by happy-path.spec.ts,
- * and duplicating it here would only make these tests slower and more
- * fragile without adding coverage of what this file is actually about.
+ * Opens `/student` directly rather than going through the real front door:
+ * the intake is covered end-to-end by happy-path.spec.ts.
  */
 
-async function startSessionViaDevBypass(page: Page): Promise<void> {
-  await page.goto('/');
-  await page.getByRole('link', { name: 'Skip to student flow (dev)' }).click();
+async function startSessionDirectly(page: Page): Promise<void> {
+  await page.goto('/student');
   await page.getByRole('button', { name: 'Start a session' }).click();
   await expect(page.getByText('Session in progress')).toBeVisible();
 }
@@ -27,6 +26,25 @@ async function pickFirstAvailableCase(page: Page): Promise<void> {
   await expect(page.getByText('The situation')).toBeVisible();
 }
 
+/**
+ * Spend this learner's first `count` candidate cases through the API, so the
+ * cases after them are offered next. page.request shares the browser's
+ * cookies, so the API calls run as the same dev learner.
+ */
+async function consumeCandidates(page: Page, count: number): Promise<void> {
+  const session = (await (await page.request.post(`${BACKEND_URL}/sessions`)).json()) as {
+    id: string;
+  };
+  const candidates = (await (await page.request.get(`${BACKEND_URL}/cases/candidates`)).json()) as {
+    id: string;
+  }[];
+  for (const candidate of candidates.slice(0, count)) {
+    await page.request.post(`${BACKEND_URL}/sessions/${session.id}/encounters`, {
+      data: { case_id: candidate.id },
+    });
+  }
+}
+
 /** Pick a specific case by its title, for tests that need a known branch. */
 async function pickCaseByTitle(page: Page, title: string): Promise<void> {
   const card = page.locator('.q-card', { hasText: title }).first();
@@ -37,23 +55,15 @@ async function pickCaseByTitle(page: Page, title: string): Promise<void> {
 }
 
 /** Quasar selects are not native <select>: open the menu, then click an option. */
-async function chooseFromSelect(
-  page: Page,
-  label: string,
-  optionText: RegExp,
-  exact = false,
-): Promise<void> {
-  await page.getByRole('combobox', { name: label, exact }).first().click();
+async function chooseFromSelect(page: Page, label: string, optionText: RegExp): Promise<void> {
+  await page.getByRole('combobox', { name: label }).first().click();
   await page.getByRole('option').filter({ hasText: optionText }).first().click();
 }
 
 /** Commit with a fixed pattern/gate (match result is irrelevant here), then reveal. */
 async function commitAndReveal(page: Page): Promise<void> {
   await chooseFromSelect(page, 'Pattern', /^A —/);
-  // 'Decision gate' also matches the framing question above it
-  // ("At which decision gate does this choice occur?"); exact-match the
-  // commitment select, same as happy-path.spec.ts.
-  await chooseFromSelect(page, 'Decision gate', /^G1/, true);
+  await chooseFromSelect(page, 'Decision gate', /^G1/);
 
   await page.getByRole('button', { name: 'Commit', exact: true }).click();
   await expect(page.getByText('Commitment saved. You can now reveal the case.')).toBeVisible();
@@ -65,12 +75,12 @@ async function commitAndReveal(page: Page): Promise<void> {
 /**
  * Whichever contrast branch shows up, get past it: fill and submit the
  * reflection for a twin counter-case, or just wait out the automatic
- * open-area acknowledgement.
+ * open-area acknowledgement, which shows no message of its own.
  */
 async function completeWhicheverContrastBranch(page: Page): Promise<void> {
   const twinTitle = page.getByText('A counter-case exists');
-  const openAreaMessage = page.getByText(/This area is not yet covered by a counter-case/);
-  await expect(twinTitle.or(openAreaMessage)).toBeVisible();
+  const completed = page.getByText(/^You have completed \d of 3 case reflections\.$/);
+  await expect(twinTitle.or(completed)).toBeVisible();
 
   if (await twinTitle.isVisible()) {
     await page.getByLabel('Your reflection').fill('A reflection for the e2e test.');
@@ -79,8 +89,11 @@ async function completeWhicheverContrastBranch(page: Page): Promise<void> {
 }
 
 test('a case with a counter-case requires a reflection and survives reload', async ({ page }) => {
-  await startSessionViaDevBypass(page);
-  await pickCaseByTitle(page, 'Demo: Sensitive Research Disclosure');
+  // A new learner is offered the oldest three unseen published harm cases,
+  // none of which has a counter-case; spending them puts RepRap on offer.
+  await consumeCandidates(page, 3);
+  await startSessionDirectly(page);
+  await pickCaseByTitle(page, 'RepRap');
   await commitAndReveal(page);
 
   await expect(page.getByText('A counter-case exists')).toBeVisible();
@@ -108,21 +121,17 @@ test('a case with a counter-case requires a reflection and survives reload', asy
 test('a case with no counter-case submits the open-area acknowledgement automatically', async ({
   page,
 }) => {
-  await startSessionViaDevBypass(page);
-  await pickCaseByTitle(page, 'Demo: Open Capability Release');
+  await startSessionDirectly(page);
+  await pickCaseByTitle(page, 'MIT Institute for Soldier Nanotechnologies');
   await commitAndReveal(page);
 
-  // No button to click: the honest-boundary message appears and the
-  // acknowledgement is submitted on its own.
-  await expect(page.getByText(/This area is not yet covered by a counter-case/)).toBeVisible();
+  // No question to answer: the acknowledgement is submitted on its own.
   await expect(page.getByRole('textbox', { name: 'Your reflection' })).toHaveCount(0);
   await expect(page.getByText('You have completed 1 of 3 case reflections.')).toBeVisible();
 });
 
-test('the third encounter offers only Finish, landing on the session debrief', async ({
-  page,
-}) => {
-  await startSessionViaDevBypass(page);
+test('the third encounter offers only Finish, landing on the session debrief', async ({ page }) => {
+  await startSessionDirectly(page);
 
   for (const current of [1, 2]) {
     await pickFirstAvailableCase(page);

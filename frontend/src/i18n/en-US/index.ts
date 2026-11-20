@@ -1,12 +1,7 @@
 export default {
-  appTitle: 'Dark Mirror',
-
   goHome: 'Go home',
   notFoundMessage: 'Sorry, nothing here...',
 
-  welcome: 'Dual-Use Reflection Lab',
-  welcomeHint: 'A guided space for responsible research decisions.',
-  fetchMessage: 'Fetch backend message',
   footerTagline:
     'A reflective space for seeing where research could lead, while there is still time to choose differently.',
   footerPurpose: 'Built for responsible research and education',
@@ -22,10 +17,6 @@ export default {
   landingMetaTime: '10–15 minutes',
   landingMetaPrivacy: 'Private reflection',
   landingMetaNoScore: 'No scores or judgment',
-  landingVisualQuestion: 'Where could this research lead?',
-  landingVisualHint: 'Pause at the decision point. Read the signals. Choose a path.',
-  landingVideoLabel: 'Dual-use perspectives',
-  landingPathsKicker: 'Made for your perspective',
   landingPathsTitle: 'Two ways into the same question.',
   landingPathsBody:
     'Begin with a real case or with a technology you know. Both routes help you make responsibility visible before the outcome is fixed.',
@@ -42,7 +33,6 @@ export default {
   landingResearcherFeatureOne: 'Technology-based',
   landingResearcherFeatureTwo: 'Comparison set',
   landingExploreRoute: 'Explore this route',
-  landingHowKicker: 'The experience',
   landingHowTitle: 'A pause for better decisions.',
   landingHowBody:
     'Real cases help you notice recurring patterns, locate the decision gate and reflect on who holds responsibility, while there is still room to act.',
@@ -60,7 +50,6 @@ export default {
   landingStatementLabel: 'Built for students & researchers',
 
   sessionStart: 'Start session',
-  studentOpenDev: 'Skip to student flow (dev)',
 
   routeChoiceTitle: 'Choose how to begin',
   routeChoiceKicker: 'Your perspective',
@@ -170,14 +159,14 @@ export default {
   intakeIntro: 'A few quick questions to set up your session.',
   intakeDiagnosticTitle: 'Three quick questions',
   intakeComprehensionTitle: 'One last check',
-  intakeOneAttempt: 'One attempt only — you will not be asked again.',
-  intakeSubmit: 'Continue',
   intakeCheckAnswers: 'Check answers',
   intakeAnswerHintTitle: 'A hint before you continue',
   intakeAnswerHintIntro: 'Look for these three ideas in the questions above:',
   intakeAnswersCorrect: 'All three answers are correct. You can continue.',
-  intakeAnswersRetry: 'You can revise your choices using the hint, or continue when you are ready.',
+  intakeAnswersReview: 'Review the correct answers, then continue when you are ready.',
   intakeSubmitting: 'Saving...',
+  intakeComprehensionCorrect: 'Correct. You can continue.',
+  intakeComprehensionCorrectAnswer: 'The correct answer: {answer}',
   intakePrimerContinue: 'Got it, continue',
   intakeContinue: 'Continue',
   intakeDoneTitle: 'You are set up',
@@ -216,7 +205,6 @@ export default {
   commitmentSubmit: 'Commit',
   commitmentSubmitting: 'Saving your commitment...',
   commitmentSaved: 'Commitment saved. You can now reveal the case.',
-  commitmentIncomplete: 'Choose a pattern and a gate first.',
 
   revealAction: 'Reveal the case',
   revealLoading: 'Revealing...',
@@ -249,7 +237,6 @@ export default {
   completeDecisionPointsLabel: 'Decision gates considered',
   completePatternsSelectedLabel: 'Patterns selected',
   completeMatchBreakdownLabel: 'Match breakdown',
-  completeCounterCaseReflectionsLabel: 'Counter-case reflections completed',
   completeSuggestedFocusLabel: 'Suggested next focus',
 
   scaffoldingLabel: 'Support level',

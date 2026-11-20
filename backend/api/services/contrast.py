@@ -2,15 +2,13 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.models import ContrastEntry, CounterCaseLink
+from api.models import CaseEncounter, ContrastEntry, CounterCaseLink
 from api.models.enums import ContrastType, Gate
-from api.services.encounters import get_owned_encounter
 from api.services.errors import ValidationError
-from api.services.sessions import get_owned_session, require_student_route
+from api.services.persistence import insert_once
 
 
 class CounterCaseInfo(BaseModel):
@@ -45,13 +43,52 @@ class ContrastResponse(BaseModel):
 
 
 async def find_counter_case_link(
-    session: AsyncSession, *, case_id: UUID
+    session: AsyncSession, *, case_ids: list[UUID]
 ) -> CounterCaseLink | None:
+    """The counter-case link of the first of `case_ids` that is a linked harm
+    case, in a stable order."""
+
+    if not case_ids:
+        return None
+
     return (
         await session.exec(
-            select(CounterCaseLink).where(CounterCaseLink.harm_case_id == case_id)
+            select(CounterCaseLink)
+            .where(col(CounterCaseLink.harm_case_id).in_(case_ids))
+            .order_by(col(CounterCaseLink.harm_case_id), col(CounterCaseLink.id))
         )
     ).first()
+
+
+def counter_case_response(link: CounterCaseLink | None) -> CounterCaseResponse:
+    """A case or set with no counter-case is a valid corpus state, not an error."""
+
+    if link is None:
+        return CounterCaseResponse(has_counter_case=False, counter_case=None)
+    return CounterCaseResponse(
+        has_counter_case=True,
+        counter_case=CounterCaseInfo(
+            counter_case_id=link.counter_case_id,
+            gate_lever=link.gate_lever,
+            responsibility_posture_contrast=link.responsibility_posture_contrast,
+        ),
+    )
+
+
+def resolve_contrast(
+    link: CounterCaseLink | None, learner_response: str | None
+) -> tuple[ContrastType, str | None]:
+    """Derive the contrast branch from the corpus, never from the request.
+
+    The twin branch requires a reflection -- that question is its pedagogical
+    core. The open-area branch asks nothing, so any response is discarded.
+    """
+
+    if link is None:
+        return ContrastType.OPEN_AREA, None
+    if not (learner_response and learner_response.strip()):
+        raise ValidationError("A reflection response is required")
+    return ContrastType.TWIN_COUNTER_CASE, learner_response.strip()
 
 
 async def _find_contrast_entry(
@@ -75,92 +112,41 @@ def _respond(entry: ContrastEntry) -> ContrastResponse:
 
 
 async def look_up_counter_case(
-    session: AsyncSession, *, encounter_id: UUID, learner_id: UUID
+    session: AsyncSession, *, encounter: CaseEncounter
 ) -> CounterCaseResponse:
-    """Report the counter-case linked to this encounter's case, if any.
-
-    A case with no counter-case is a valid corpus state, not an error: this
-    never 404s for that reason, only for an ownership mismatch.
-    """
-
-    encounter = await get_owned_encounter(
-        session, encounter_id=encounter_id, learner_id=learner_id
-    )
-    owned_session = await get_owned_session(
-        session, session_id=encounter.session_id, learner_id=learner_id
-    )
-    require_student_route(owned_session.route)
-
-    link = await find_counter_case_link(session, case_id=encounter.case_id)
-    if link is None:
-        return CounterCaseResponse(has_counter_case=False, counter_case=None)
-
-    return CounterCaseResponse(
-        has_counter_case=True,
-        counter_case=CounterCaseInfo(
-            counter_case_id=link.counter_case_id,
-            gate_lever=link.gate_lever,
-            responsibility_posture_contrast=link.responsibility_posture_contrast,
-        ),
-    )
+    link = await find_counter_case_link(session, case_ids=[encounter.case_id])
+    return counter_case_response(link)
 
 
 async def submit_contrast(
     session: AsyncSession,
     *,
-    encounter_id: UUID,
-    learner_id: UUID,
+    encounter: CaseEncounter,
     learner_response: str | None,
 ) -> ContrastResponse:
-    """Record the encounter's contrast reflection, computing it only the first time.
+    """Record the encounter's contrast reflection, computing it only the first time."""
 
-    contrast_type and counter_case_id are derived here from the encounter's own
-    case, never from the request. A non-empty learner_response is required when
-    a counter-case exists -- that question is the pedagogical core of the twin
-    branch, not decoration -- and is always discarded (forced to None) for the
-    open-area branch, which asks nothing. Idempotent the way reveal_encounter is
-    (api/services/feedback.py).
-    """
-
-    encounter = await get_owned_encounter(
-        session, encounter_id=encounter_id, learner_id=learner_id
-    )
-    owned_session = await get_owned_session(
-        session, session_id=encounter.session_id, learner_id=learner_id
-    )
-    require_student_route(owned_session.route)
+    encounter_id = encounter.id
 
     existing = await _find_contrast_entry(session, encounter_id=encounter_id)
     if existing is not None:
         return _respond(existing)
 
-    link = await find_counter_case_link(session, case_id=encounter.case_id)
-    if link is not None:
-        if not (learner_response and learner_response.strip()):
-            raise ValidationError("A reflection response is required")
-        contrast_type = ContrastType.TWIN_COUNTER_CASE
-        counter_case_id = link.counter_case_id
-        learner_response = learner_response.strip()
-    else:
-        contrast_type = ContrastType.OPEN_AREA
-        counter_case_id = None
-        learner_response = None
+    link = await find_counter_case_link(session, case_ids=[encounter.case_id])
+    contrast_type, learner_response = resolve_contrast(link, learner_response)
+    counter_case_id = link.counter_case_id if link is not None else None
 
-    record = ContrastEntry(
-        case_encounter_id=encounter_id,
-        contrast_type=contrast_type,
-        counter_case_id=counter_case_id,
-        learner_response=learner_response,
+    record, created = await insert_once(
+        session,
+        ContrastEntry(
+            case_encounter_id=encounter_id,
+            contrast_type=contrast_type,
+            counter_case_id=counter_case_id,
+            learner_response=learner_response,
+        ),
+        lambda: _find_contrast_entry(session, encounter_id=encounter_id),
     )
-    session.add(record)
-    try:
-        await session.flush()
-    except IntegrityError:
-        await session.rollback()
-        existing = await _find_contrast_entry(session, encounter_id=encounter_id)
-        if existing is None:
-            raise
-        return _respond(existing)
-    await session.commit()
+    if created:
+        await session.commit()
 
     return _respond(record)

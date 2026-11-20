@@ -1,14 +1,11 @@
 <template>
   <q-page class="q-pa-md">
     <div class="complete-page column q-gutter-md">
-      <q-banner v-if="errorMessage" class="bg-red-1 text-negative" rounded>
-        <template #avatar><q-icon name="warning" color="negative" /></template>
-        <div class="text-weight-medium">{{ t('errorTitle') }}</div>
-        <div>{{ errorMessage }}</div>
-        <template #action>
-          <q-btn v-if="notFound" flat :label="t('studentReset')" @click="startOver" />
+      <ErrorBanner v-if="errorMessage" :message="errorMessage">
+        <template v-if="notFound" #action>
+          <q-btn flat :label="t('studentReset')" @click="startOver" />
         </template>
-      </q-banner>
+      </ErrorBanner>
 
       <div v-else-if="loading" class="row items-center q-gutter-sm text-grey-7">
         <q-spinner size="24px" />
@@ -68,25 +65,10 @@
                 {{ t('completeMatchBreakdownLabel') }}
               </div>
               <div class="row q-gutter-md">
-                <div>
-                  {{ t('matchMatch') }}: {{ sessionReport.report.match_result_counts.match }}
+                <div v-for="(display, result) in MATCH_RESULT_DISPLAY" :key="result">
+                  {{ t(display.labelKey) }}:
+                  {{ sessionReport.report.match_result_counts[result] }}
                 </div>
-                <div>
-                  {{ t('matchPartial') }}:
-                  {{ sessionReport.report.match_result_counts.partial_match }}
-                </div>
-                <div>
-                  {{ t('matchMismatch') }}: {{ sessionReport.report.match_result_counts.mismatch }}
-                </div>
-              </div>
-            </div>
-
-            <div class="row justify-between">
-              <div class="text-body2 text-grey-7">
-                {{ t('completeCounterCaseReflectionsLabel') }}
-              </div>
-              <div class="text-subtitle1">
-                {{ sessionReport.report.counter_case_reflections_completed }}
               </div>
             </div>
 
@@ -115,9 +97,13 @@
           flat
           bordered
         >
-          <q-card-section :class="`bg-${verdictFor(entry.match_result).color} text-white`">
+          <q-card-section
+            :class="`bg-${MATCH_RESULT_DISPLAY[entry.match_result].color} text-white`"
+          >
             <div class="text-h6">{{ entry.case_title }}</div>
-            <div class="text-body2 q-mt-xs">{{ t(verdictFor(entry.match_result).label) }}</div>
+            <div class="text-body2 q-mt-xs">
+              {{ t(MATCH_RESULT_DISPLAY[entry.match_result].labelKey) }}
+            </div>
           </q-card-section>
 
           <q-card-section>
@@ -164,38 +150,27 @@ import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import { ApiError } from 'boot/api';
 import CaseDomainLabel from 'components/CaseDomainLabel.vue';
+import ErrorBanner from 'components/ErrorBanner.vue';
+import { useOwnedResourceError } from 'src/composables/useApiError';
 import type { ScaffoldingDepth } from 'src/api/intake';
 import { getSessionReport } from 'src/api/student';
-import type { CompletedEncounterReport, MatchResult, SessionReport } from 'src/api/student';
+import type { CompletedEncounterReport, SessionReport } from 'src/api/student';
+import { MATCH_RESULT_DISPLAY } from 'src/content/matchResult';
 import { GATE_DISPLAY_BY_ID, PATTERN_DISPLAY_BY_ID } from 'src/content/patterns';
 import { useStudentStore } from 'stores/student';
-import { useIntakeStore } from 'stores/intake';
 
 defineOptions({
   name: 'StudentCompletePage',
 });
 
 const { t } = useI18n();
+const { errorMessage, notFound, report: handle } = useOwnedResourceError();
 const router = useRouter();
 const store = useStudentStore();
-const intakeStore = useIntakeStore();
 
 const sessionReport = ref<SessionReport | null>(null);
 const loading = ref(false);
-const errorMessage = ref('');
-const notFound = ref(false);
-
-const VERDICTS: Record<MatchResult, { color: string; label: string }> = {
-  match: { color: 'positive', label: 'matchMatch' },
-  partial_match: { color: 'warning', label: 'matchPartial' },
-  mismatch: { color: 'negative', label: 'matchMismatch' },
-};
-
-function verdictFor(matchResult: MatchResult) {
-  return VERDICTS[matchResult];
-}
 
 const SCAFFOLDING_LABEL_KEY: Record<ScaffoldingDepth, string> = {
   high: 'scaffoldingHigh',
@@ -203,27 +178,11 @@ const SCAFFOLDING_LABEL_KEY: Record<ScaffoldingDepth, string> = {
   low: 'scaffoldingLow',
 };
 
-const REFLECTION_KEY: Record<MatchResult, string> = {
-  match: 'reflectionMatch',
-  partial_match: 'reflectionPartialMatch',
-  mismatch: 'reflectionMismatch',
-};
-
 function reflectionText(entry: CompletedEncounterReport): string {
-  return t(REFLECTION_KEY[entry.match_result], {
+  return t(MATCH_RESULT_DISPLAY[entry.match_result].reflectionKey, {
     pattern: PATTERN_DISPLAY_BY_ID[entry.committed_pattern].label,
     gate: GATE_DISPLAY_BY_ID[entry.committed_gate].label,
   });
-}
-
-function handle(error: unknown) {
-  if (error instanceof ApiError) {
-    notFound.value = error.status === 404;
-    errorMessage.value = error.status === 404 ? t('errorNotYours') : error.detail;
-    return;
-  }
-  notFound.value = false;
-  errorMessage.value = t('errorUnexpected');
 }
 
 async function loadReport() {
@@ -243,8 +202,7 @@ async function loadReport() {
 }
 
 function startOver() {
-  store.reset();
-  intakeStore.reset();
+  store.startOver();
   void router.push('/intake');
 }
 

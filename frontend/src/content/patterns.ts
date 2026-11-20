@@ -1,3 +1,6 @@
+import { GATES, PATTERNS } from 'src/api/taxonomy';
+import type { Gate, Pattern } from 'src/api/taxonomy';
+
 /**
  * Human-readable display labels for Pattern and Gate enum values.
  *
@@ -10,7 +13,6 @@
  * Display-layer content only. API payloads must continue to use the
  * stable backend enum IDs: Pattern A–P and Gate G1–G6.
  */
-import type { Gate, Pattern } from 'src/api/student';
 
 export interface PatternDisplay {
   label: string;
@@ -21,19 +23,15 @@ export interface GateDisplay {
   label: string;
 }
 
+/** A ready-to-use q-select option (emit-value, map-options). */
 export interface PatternOption extends PatternDisplay {
-  id: Pattern;
+  value: Pattern;
 }
 
 export interface GateOption extends GateDisplay {
-  id: Gate;
+  value: Gate;
 }
 
-/**
- * Keyed by enum ID so a reveal or a stored commitment can look its display text
- * up directly. `satisfies Record<Pattern, …>` makes a missing or misspelled ID a
- * compile error rather than an `undefined` label at render time.
- */
 export const PATTERN_DISPLAY_BY_ID = {
   A: {
     label: 'A — transferability',
@@ -137,42 +135,16 @@ export const GATE_DISPLAY_BY_ID = {
 } as const satisfies Record<Gate, GateDisplay>;
 
 /**
- * Display order for the pickers, stated explicitly rather than derived from the
- * records above.
- *
- * The source document groups patterns by layer (harm mechanisms / conditions and
- * levers / responses), not alphabetically. If PATTERN_DISPLAY_BY_ID is ever
- * reordered to mirror that grouping, `Object.entries()` would silently reorder
- * the picker with it; this array keeps A→P a stated fact, independent of how the
- * record happens to be written.
+ * The source document groups patterns by layer (harm mechanisms / conditions
+ * and levers / responses), not alphabetically; the pickers stay A→P, the
+ * order of PATTERNS, regardless of how the record above is arranged.
  */
-const PATTERN_ORDER: readonly Pattern[] = [
-  'A',
-  'B',
-  'C',
-  'D',
-  'E',
-  'F',
-  'G',
-  'H',
-  'I',
-  'J',
-  'K',
-  'L',
-  'M',
-  'N',
-  'O',
-  'P',
-];
-
-const GATE_ORDER: readonly Gate[] = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
-
-export const PATTERN_OPTIONS: readonly PatternOption[] = PATTERN_ORDER.map((id) => ({
-  id,
-  ...PATTERN_DISPLAY_BY_ID[id],
+export const PATTERN_OPTIONS: readonly PatternOption[] = PATTERNS.map((value) => ({
+  value,
+  ...PATTERN_DISPLAY_BY_ID[value],
 }));
 
-export const GATE_OPTIONS: readonly GateOption[] = GATE_ORDER.map((id) => ({
-  id,
-  ...GATE_DISPLAY_BY_ID[id],
+export const GATE_OPTIONS: readonly GateOption[] = GATES.map((value) => ({
+  value,
+  ...GATE_DISPLAY_BY_ID[value],
 }));

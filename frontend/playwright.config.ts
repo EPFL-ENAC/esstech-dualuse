@@ -10,8 +10,12 @@ import { fileURLToPath } from 'node:url';
  * Do not add an `e2e` command to lefthook.yml.
  *
  * Everything here targets a dedicated `app_e2e` database, never the local
- * development database. `globalSetup` creates, resets, migrates and seeds it
- * before any test runs; see e2e/global-setup.ts.
+ * development database. The backend server command resets, migrates and seeds
+ * it before uvicorn starts (see backend/scripts/reset_e2e.py). It cannot be a
+ * `globalSetup`: Playwright starts the web servers first, and the backend
+ * refuses to start on a schema that is not at the latest migration.
+ *
+ * Postgres must already be running (`make run-db` from the repo root).
  */
 
 const BACKEND_PORT = 8000;
@@ -19,7 +23,7 @@ const FRONTEND_PORT = 9000;
 
 /** Must match public/env.js, which hardcodes the API origin the app calls. */
 export const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
-export const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
+const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
 
 /** The only database this suite is ever allowed to touch. */
 const E2E_DB_NAME = 'app_e2e';
@@ -27,34 +31,24 @@ const E2E_DB_NAME = 'app_e2e';
 const backendDir = fileURLToPath(new URL('../backend', import.meta.url));
 
 /**
- * The Makefile's `dotenv run` wrapper is deliberately bypassed here so
- * DB_NAME cannot be overridden back to the development database -- but
- * Config() (api/config.py) now reads `.env` directly itself via
- * pydantic-settings' env_file, independent of any wrapper. So the real
- * repo-root `.env` (including its real Google OAuth credentials) would
- * otherwise reach this spawned backend for anything not explicitly set
- * below. GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are forced to the empty
- * string, not merely left unset, to actually keep OAuth dormant here --
- * see google_oauth_configured()'s docstring (api/services/auth.py) for
- * why unset alone would not be enough once env_file is in the picture.
+ * The backend's Config() reads the repo-root `.env` itself (pydantic-settings
+ * env_file); the real environment variables set here outrank it, and anything
+ * not set here comes from the developer's real `.env`.
+ *
+ * Google OAuth is kept dormant: no test drives a Google sign-in, and an
+ * automated run must never carry a developer's real OAuth credentials. The
+ * credentials are set to the empty string rather than left unset, because
+ * unset ones would be filled in from `.env`.
  */
-const backendEnv = {
+const BACKEND_ENV = {
   DB_NAME: E2E_DB_NAME,
   SECRET_KEY: 'e2e-secret-key-not-used-for-anything',
-  // Required by config.Config with no default, though no test path calls the
-  // model. A placeholder keeps startup from failing.
-  OPENAI_API_KEY: 'e2e-placeholder-key',
-  // Force the OAuth routes dormant for e2e: no test drives a "Sign in with
-  // Google" flow (there is no button for it yet), and a real backend
-  // reachable at localhost:8000 should never carry a developer's real
-  // Google OAuth credentials during an automated run.
   GOOGLE_CLIENT_ID: '',
   GOOGLE_CLIENT_SECRET: '',
 };
 
 export default defineConfig({
   testDir: './e2e',
-  globalSetup: './e2e/global-setup.ts',
   // The happy path walks a single learner through one linear flow; running
   // specs in parallel against one database would let them see each other's
   // sessions in the candidate list.
@@ -77,11 +71,18 @@ export default defineConfig({
 
   webServer: [
     {
-      // No --reload: the watcher restarts the server mid-test.
-      command: `uv run uvicorn api.main:app --port ${BACKEND_PORT}`,
+      // Reset first: a brand-new database has nothing to migrate, and the
+      // reset script creates it. No --reload: the watcher restarts the
+      // server mid-test.
+      command: [
+        'uv run python -m scripts.reset_e2e',
+        'uv run alembic upgrade head',
+        'uv run python -m scripts.seed_cases',
+        `uv run uvicorn api.main:app --port ${BACKEND_PORT}`,
+      ].join(' && '),
       cwd: backendDir,
       url: `${BACKEND_URL}/healthz`,
-      env: backendEnv,
+      env: BACKEND_ENV,
       // Never reuse: an already-running dev server is pointed at the
       // development database, and silently testing against it is the exact
       // failure this suite is meant to avoid. Stop `make run-backend` first.
