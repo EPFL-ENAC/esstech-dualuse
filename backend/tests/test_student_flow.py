@@ -4,7 +4,6 @@ The API and these tests share one database session (see the `app_client`
 fixture), so fixture rows must be committed before any API call.
 """
 
-from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -12,6 +11,7 @@ from sqlmodel import select
 
 from api.models import Case, Commitment, FeedbackRecord
 from api.models.enums import CaseStatus, CaseType, Domain, Gate, MatchResult, Pattern
+from tests.helpers import instant, start_session
 
 
 def _make_case(
@@ -34,26 +34,6 @@ def _make_case(
         main_path_gate=main_path_gate,
         source_references=["ref-1"],
     )
-
-
-def _instant(value: str) -> datetime:
-    """Parse an API timestamp, tolerating SQLite's tz-less round-trip.
-
-    Postgres stores `revealed_at` as timestamptz and returns it tz-aware
-    whether the reveal computed the row or re-read it. SQLite drops the offset
-    on read, so here the freshly computed and re-fetched values serialize to
-    different strings while denoting the same instant. Compare instants, not
-    strings, so this test asserts the invariant rather than the test backend.
-    """
-
-    parsed = datetime.fromisoformat(value)
-    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
-
-
-async def _start_session(app_client) -> str:
-    response = await app_client.post("/sessions")
-    assert response.status_code == 201
-    return response.json()["id"]
 
 
 async def _select_case(app_client, session_id: str, case: Case):
@@ -79,7 +59,7 @@ async def _encounter_for(app_client, db_session, case: Case) -> str:
     db_session.add(case)
     await db_session.commit()
 
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     response = await _select_case(app_client, session_id, case)
     assert response.status_code == 201
     return response.json()["id"]
@@ -124,9 +104,7 @@ async def test_reveal_twice_returns_the_identical_record(app_client, db_session)
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json()["feedback_record_id"] == second.json()["feedback_record_id"]
-    assert _instant(first.json()["revealed_at"]) == _instant(
-        second.json()["revealed_at"]
-    )
+    assert instant(first.json()["revealed_at"]) == instant(second.json()["revealed_at"])
 
     records = (await db_session.exec(select(FeedbackRecord))).all()
     assert len(records) == 1
@@ -136,7 +114,7 @@ async def test_selecting_the_same_case_twice_is_rejected(app_client, db_session)
     case = _make_case()
     db_session.add(case)
     await db_session.commit()
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
 
     assert (await _select_case(app_client, session_id, case)).status_code == 201
     duplicate = await _select_case(app_client, session_id, case)
@@ -150,7 +128,7 @@ async def test_fourth_encounter_in_a_session_is_rejected(app_client, db_session)
     for case in cases:
         db_session.add(case)
     await db_session.commit()
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
 
     for case in cases[:3]:
         assert (await _select_case(app_client, session_id, case)).status_code == 201
@@ -186,10 +164,10 @@ async def test_candidates_exclude_cases_encountered_in_any_earlier_session(
     db_session.add(unseen)
     await db_session.commit()
 
-    first_session = await _start_session(app_client)
+    first_session = await start_session(app_client)
     assert (await _select_case(app_client, first_session, seen)).status_code == 201
 
-    await _start_session(app_client)
+    await start_session(app_client)
     response = await app_client.get("/cases/candidates")
 
     assert response.status_code == 200
@@ -214,7 +192,7 @@ async def test_pre_reveal_responses_hide_the_answer_key(app_client, db_session):
     case = _make_case()
     db_session.add(case)
     await db_session.commit()
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
 
     candidates = await app_client.get("/cases/candidates")
     encounter = await _select_case(app_client, session_id, case)
@@ -232,7 +210,7 @@ async def test_another_learners_session_is_not_found(app_client, db_session, lea
     case = _make_case()
     db_session.add(case)
     await db_session.commit()
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
 
     learner["id"] = uuid4()
     response = await _select_case(app_client, session_id, case)

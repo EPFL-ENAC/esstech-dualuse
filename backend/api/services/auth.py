@@ -20,9 +20,6 @@ GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 
-AUTH_SESSION_COOKIE = "auth_session"
-OAUTH_STATE_COOKIE = "oauth_state"
-
 # PLACEHOLDER retention value, not a decided policy: Fase 2
 # (privacy/retention) has not been written yet. Revisit once it has.
 SESSION_COOKIE_MAX_AGE = 30 * 24 * 3600
@@ -41,25 +38,21 @@ def google_oauth_configured() -> bool:
     return bool(config.GOOGLE_CLIENT_ID) and bool(config.GOOGLE_CLIENT_SECRET)
 
 
-def _session_serializer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(config.SECRET_KEY, salt="auth-session")
-
-
-def _state_serializer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(config.SECRET_KEY, salt="oauth-state")
+def _serializer(salt: str) -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(config.SECRET_KEY, salt=salt)
 
 
 def sign_session(user_id: UUID) -> str:
     """Sign a session cookie value for `user_id`."""
 
-    return _session_serializer().dumps({"user_id": str(user_id)})
+    return _serializer("auth-session").dumps({"user_id": str(user_id)})
 
 
 def verify_session_cookie(raw_cookie: str) -> UUID | None:
     """Verify and decode a session cookie. None if invalid, tampered, or expired."""
 
     try:
-        payload = _session_serializer().loads(
+        payload = _serializer("auth-session").loads(
             raw_cookie, max_age=SESSION_COOKIE_MAX_AGE
         )
     except (BadSignature, SignatureExpired):
@@ -73,7 +66,7 @@ def verify_session_cookie(raw_cookie: str) -> UUID | None:
 def sign_state(state: str) -> str:
     """Sign a CSRF state value for the short-lived state cookie."""
 
-    return _state_serializer().dumps(state)
+    return _serializer("oauth-state").dumps(state)
 
 
 def verify_state(cookie_value: str, *, query_state: str) -> bool:
@@ -81,7 +74,7 @@ def verify_state(cookie_value: str, *, query_state: str) -> bool:
     the state Google echoed back in the callback's query string."""
 
     try:
-        signed_state = _state_serializer().loads(
+        signed_state = _serializer("oauth-state").loads(
             cookie_value, max_age=STATE_COOKIE_MAX_AGE
         )
     except (BadSignature, SignatureExpired):

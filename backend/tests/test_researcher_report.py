@@ -17,7 +17,6 @@ from api.models import (
     CounterCaseLink,
 )
 from api.models.enums import (
-    CaseStatus,
     CaseType,
     Domain,
     Form,
@@ -26,12 +25,7 @@ from api.models.enums import (
     InclusionReason,
     Pattern,
 )
-
-
-async def _start_session(app_client) -> str:
-    response = await app_client.post("/sessions", json={"route": "researcher"})
-    assert response.status_code == 201
-    return response.json()["id"]
+from tests.helpers import make_researcher_case, start_session
 
 
 async def _start_intake(
@@ -92,21 +86,6 @@ async def _submit_gate_and_posture(
         json={"gate": gate.value, "posture_response": posture_response},
     )
     assert response.status_code == 201
-
-
-def _make_case(title: str, *, case_type: CaseType = CaseType.HARM) -> Case:
-    return Case(
-        title=title,
-        area="report fixture",
-        domain=Domain.CYBER_TECHNOLOGIES,
-        case_type=case_type,
-        status=CaseStatus.PUBLISHED,
-        narrative_until_crossroads="x",
-        full_narrative="x",
-        main_path_pattern=Pattern.A,
-        main_path_gate=Gate.G1,
-        source_references=[],
-    )
 
 
 async def _build_comparison_set(
@@ -173,7 +152,7 @@ async def _get_report(app_client, session_id: str) -> dict:
 
 
 async def _in_progress_session(app_client, db_session) -> str:
-    return await _start_session(app_client)
+    return await start_session(app_client, route="researcher")
 
 
 async def _boundary_exit_session(app_client, db_session) -> str:
@@ -187,7 +166,7 @@ async def _boundary_exit_session(app_client, db_session) -> str:
     coverage here.
     """
 
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _start_intake(app_client, session_id)
     await _submit_tag(
         app_client, session_id, domain=None, functions=["sensing"], forms=[]
@@ -201,12 +180,12 @@ async def _boundary_exit_session(app_client, db_session) -> str:
 async def _full_session(app_client, db_session) -> str:
     """Mapped, matching prediction, open-area contrast: dominant=A, secondary=[B]."""
 
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _start_intake(app_client, session_id)
     await _map_intake(app_client, session_id)
     await _submit_gate_and_posture(app_client, session_id)
-    case1 = _make_case("Report fixture: full 1")
-    case2 = _make_case("Report fixture: full 2")
+    case1 = make_researcher_case("Report fixture: full 1")
+    case2 = make_researcher_case("Report fixture: full 2")
     await _build_comparison_set(
         db_session,
         session_id=session_id,
@@ -222,11 +201,11 @@ async def _full_session(app_client, db_session) -> str:
 
 
 async def _zero_pattern_session(app_client, db_session) -> str:
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _start_intake(app_client, session_id)
     await _map_intake(app_client, session_id)
     await _submit_gate_and_posture(app_client, session_id)
-    case = _make_case("Report fixture: untagged")
+    case = make_researcher_case("Report fixture: untagged")
     await _build_comparison_set(
         db_session, session_id=session_id, cases_and_patterns=[(case, [])]
     )
@@ -240,7 +219,7 @@ async def _zero_pattern_session(app_client, db_session) -> str:
 
 
 async def test_report_is_in_progress_before_any_intake(app_client):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
 
     body = await _get_report(app_client, session_id)
 
@@ -248,7 +227,7 @@ async def test_report_is_in_progress_before_any_intake(app_client):
 
 
 async def test_report_is_in_progress_mid_mapping_with_attempts_remaining(app_client):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _start_intake(app_client, session_id)
     await _submit_tag(app_client, session_id, domain=None, functions=[], forms=[])
 
@@ -258,7 +237,7 @@ async def test_report_is_in_progress_mid_mapping_with_attempts_remaining(app_cli
 
 
 async def test_report_is_in_progress_once_mapped_but_before_contrast(app_client):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _start_intake(app_client, session_id)
     await _map_intake(app_client, session_id)
     await _submit_gate_and_posture(app_client, session_id)
@@ -315,15 +294,15 @@ async def test_report_full_with_matching_prediction_and_open_area(
 async def test_report_full_with_mismatched_prediction_and_twin_counter_case(
     app_client, db_session
 ):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _start_intake(app_client, session_id)
     await _map_intake(app_client, session_id)
     await _submit_gate_and_posture(app_client, session_id)
 
-    harm_case = _make_case("Report fixture: twin harm")
+    harm_case = make_researcher_case("Report fixture: twin harm")
     db_session.add(harm_case)
     await db_session.flush()
-    counter_case = _make_case(
+    counter_case = make_researcher_case(
         "Report fixture: twin counter-case", case_type=CaseType.COUNTER_CASE
     )
     db_session.add(counter_case)
@@ -376,7 +355,7 @@ async def test_report_zero_pattern_when_no_case_carries_a_tagged_pattern(
 async def test_another_learners_session_report_is_not_found(
     app_client, db_session, learner
 ):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
 
     learner["id"] = uuid4()
     response = await app_client.get(f"/sessions/{session_id}/researcher/report")

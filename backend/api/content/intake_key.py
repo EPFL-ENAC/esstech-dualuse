@@ -45,6 +45,14 @@ COMPREHENSION_ITEM = KeyedItem(id="c1", options=("c1a", "c1b", "c1c"), correct="
 DIAGNOSTIC_THRESHOLD = 2
 
 
+def is_above_threshold(score: int) -> bool:
+    return score >= DIAGNOSTIC_THRESHOLD
+
+
+def is_comprehension_correct(answer: str | None) -> bool:
+    return answer == COMPREHENSION_ITEM.correct
+
+
 def score_diagnostic(answers: list[str]) -> int:
     """Count how many of the submitted option ids are the correct ones.
 

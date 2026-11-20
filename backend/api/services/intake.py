@@ -16,8 +16,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from api.content.intake_key import (
     COMPREHENSION_ITEM,
     DIAGNOSTIC_ITEMS,
-    DIAGNOSTIC_THRESHOLD,
     derive_scaffolding_depth,
+    is_above_threshold,
+    is_comprehension_correct,
     score_diagnostic,
 )
 from api.models import SessionIntake
@@ -75,16 +76,12 @@ class IntakeState(BaseModel):
 DIAGNOSTIC_CORRECT_ANSWERS = [item.correct for item in DIAGNOSTIC_ITEMS]
 
 
-def _above_threshold(score: int) -> bool:
-    return score >= DIAGNOSTIC_THRESHOLD
-
-
 def _to_state(record: SessionIntake) -> IntakeState:
     return IntakeState(
         session_id=record.session_id,
         diagnostic_answers=record.diagnostic_answers,
         diagnostic_score=record.diagnostic_score,
-        above_threshold=_above_threshold(record.diagnostic_score),
+        above_threshold=is_above_threshold(record.diagnostic_score),
         diagnostic_correct_answers=DIAGNOSTIC_CORRECT_ANSWERS,
         primer_shown=record.primer_shown,
         created_at=record.created_at,
@@ -92,7 +89,7 @@ def _to_state(record: SessionIntake) -> IntakeState:
         comprehension_correct=(
             None
             if record.comprehension_answer is None
-            else record.comprehension_answer == COMPREHENSION_ITEM.correct
+            else is_comprehension_correct(record.comprehension_answer)
         ),
         comprehension_correct_answer=(
             None if record.comprehension_answer is None else COMPREHENSION_ITEM.correct
@@ -134,7 +131,7 @@ async def submit_diagnostic(
             session_id=session_id,
             diagnostic_answers=answers,
             diagnostic_score=score,
-            primer_shown=not _above_threshold(score),
+            primer_shown=not is_above_threshold(score),
         ),
         lambda: _find_intake(session, session_id=session_id),
     )
@@ -147,7 +144,7 @@ async def submit_diagnostic(
 def _diagnostic_result(record: SessionIntake) -> DiagnosticResult:
     return DiagnosticResult(
         diagnostic_score=record.diagnostic_score,
-        above_threshold=_above_threshold(record.diagnostic_score),
+        above_threshold=is_above_threshold(record.diagnostic_score),
         correct_answers=DIAGNOSTIC_CORRECT_ANSWERS,
     )
 
@@ -183,9 +180,9 @@ async def submit_comprehension(
     if answer not in COMPREHENSION_ITEM.options:
         raise ValidationError(f"Unknown option for item {COMPREHENSION_ITEM.id}")
 
-    correct = answer == COMPREHENSION_ITEM.correct
+    correct = is_comprehension_correct(answer)
     depth = derive_scaffolding_depth(
-        above_threshold=_above_threshold(record.diagnostic_score),
+        above_threshold=is_above_threshold(record.diagnostic_score),
         comprehension_correct=correct,
     )
 
@@ -224,7 +221,7 @@ def _completed_result(record: SessionIntake) -> ComprehensionResult:
         raise ConflictError("Intake is finished but has no scaffolding depth")
 
     return ComprehensionResult(
-        correct=record.comprehension_answer == COMPREHENSION_ITEM.correct,
+        correct=is_comprehension_correct(record.comprehension_answer),
         correct_answer=COMPREHENSION_ITEM.correct,
         scaffolding_depth=record.scaffolding_depth,
     )

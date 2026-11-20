@@ -9,6 +9,7 @@ from sqlmodel import select
 
 from api.models import Case, ContrastEntry, CounterCaseLink
 from api.models.enums import CaseStatus, CaseType, Domain, Gate, Pattern
+from tests.helpers import start_session
 
 
 def _make_case(
@@ -30,19 +31,13 @@ def _make_case(
     )
 
 
-async def _start_session(app_client) -> str:
-    response = await app_client.post("/sessions")
-    assert response.status_code == 201
-    return response.json()["id"]
-
-
 async def _encounter_for(app_client, db_session, case: Case) -> str:
     """Persist `case`, start a session, select it, and return the encounter id."""
 
     db_session.add(case)
     await db_session.commit()
 
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     response = await app_client.post(
         f"/sessions/{session_id}/encounters", json={"case_id": str(case.id)}
     )

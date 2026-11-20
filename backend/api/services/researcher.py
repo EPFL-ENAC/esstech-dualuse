@@ -35,6 +35,15 @@ from api.services.contrast import (
 )
 from api.services.errors import ConflictError, NotFoundError, ValidationError
 from api.services.persistence import insert_once
+from api.services.researcher_queries import (
+    MAX_TAG_ATTEMPTS,
+    attempts_remaining,
+    comparison_case_ids,
+    find_comparison_set,
+    find_predictions,
+    find_set_contrast_entry,
+    find_technology_intake,
+)
 
 # Below this many Function-matched cases, widen by Domain. Not configurable:
 # a fixed corpus-size floor for a comparison to be meaningful at all.
@@ -198,16 +207,6 @@ def check_mapping_status(
     return MappingStatus.PARTIAL
 
 
-async def find_technology_intake(
-    session: AsyncSession, *, session_id: UUID
-) -> TechnologyIntake | None:
-    return (
-        await session.exec(
-            select(TechnologyIntake).where(TechnologyIntake.session_id == session_id)
-        )
-    ).first()
-
-
 async def create_technology_intake(
     session: AsyncSession,
     *,
@@ -241,18 +240,6 @@ async def create_technology_intake(
         mapping_status=record.mapping_status,
         created_at=record.created_at,
     )
-
-
-# The flow spec's "one clarification question, retry once".
-MAX_TAG_ATTEMPTS = 2
-
-
-def attempts_remaining(intake: TechnologyIntake) -> int:
-    """How many /tag attempts this intake has left."""
-
-    if intake.mapping_status == MappingStatus.MAPPED:
-        return 0
-    return max(0, MAX_TAG_ATTEMPTS - intake.clarification_count)
 
 
 async def submit_tag(
@@ -353,22 +340,6 @@ async def set_gate_and_posture(
     return GateAndPostureResult(gate=gate, posture_response=posture_response)
 
 
-async def find_predictions(
-    session: AsyncSession, *, session_id: UUID
-) -> list[ResearcherPrediction]:
-    """A session's submitted prediction, ordered by rank."""
-
-    return list(
-        (
-            await session.exec(
-                select(ResearcherPrediction)
-                .where(ResearcherPrediction.session_id == session_id)
-                .order_by(col(ResearcherPrediction.rank))
-            )
-        ).all()
-    )
-
-
 async def submit_prediction(
     session: AsyncSession,
     *,
@@ -413,38 +384,6 @@ async def submit_prediction(
         raise ConflictError("Session already has a submitted prediction") from exc
 
     return PredictionSubmissionResult(predictions=predictions)
-
-
-async def find_comparison_set(
-    session: AsyncSession, *, session_id: UUID
-) -> ComparisonSet | None:
-    return (
-        await session.exec(
-            select(ComparisonSet).where(ComparisonSet.session_id == session_id)
-        )
-    ).first()
-
-
-async def require_comparison_set(
-    session: AsyncSession, *, session_id: UUID
-) -> ComparisonSet:
-    comparison_set = await find_comparison_set(session, session_id=session_id)
-    if comparison_set is None:
-        raise ConflictError("Session has no comparison set yet")
-    return comparison_set
-
-
-async def comparison_case_ids(session: AsyncSession, *, session_id: UUID) -> list[UUID]:
-    comparison_set = await require_comparison_set(session, session_id=session_id)
-    return list(
-        (
-            await session.exec(
-                select(ComparisonSetCase.case_id).where(
-                    ComparisonSetCase.comparison_set_id == comparison_set.id
-                )
-            )
-        ).all()
-    )
 
 
 async def _respond(
@@ -660,16 +599,6 @@ async def reveal_prediction_comparison(
         predictions_in_secondary=predictions_in_secondary,
         predictions_not_activated=predictions_not_activated,
     )
-
-
-async def find_set_contrast_entry(
-    session: AsyncSession, *, session_id: UUID
-) -> SetContrastEntry | None:
-    return (
-        await session.exec(
-            select(SetContrastEntry).where(SetContrastEntry.session_id == session_id)
-        )
-    ).first()
 
 
 async def look_up_set_counter_case(

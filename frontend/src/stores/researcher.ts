@@ -11,7 +11,6 @@ import type {
 import type { SessionCreated } from 'src/api/sessions';
 import { useResearcherIntakeStore } from 'stores/researcherIntake';
 
-/** Flow state for the Researcher/Individual path. */
 export const useResearcherStore = defineStore(
   'researcher',
   () => {

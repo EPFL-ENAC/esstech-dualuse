@@ -10,6 +10,7 @@ import pytest
 
 from api.models import Case, CounterCaseLink
 from api.models.enums import CaseStatus, CaseType, Domain, Gate, MatchResult, Pattern
+from tests.helpers import start_session
 
 
 def _make_case(
@@ -60,12 +61,6 @@ async def _link_counter_case(
     db_session.add(link)
     await db_session.commit()
     return link
-
-
-async def _start_session(app_client) -> str:
-    response = await app_client.post("/sessions")
-    assert response.status_code == 201
-    return response.json()["id"]
 
 
 async def _select_case(app_client, session_id: str, case: Case) -> str:
@@ -141,7 +136,7 @@ async def test_report_single_open_area_encounter_per_match_result(
     app_client, db_session, pattern, gate, expected
 ):
     case = _make_case(main_path_pattern=Pattern.A, main_path_gate=Gate.G1)
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     await _complete_encounter(
         app_client, db_session, session_id, case, pattern=pattern, gate=gate
     )
@@ -166,7 +161,7 @@ async def test_report_twin_counter_case_encounter_includes_gate_lever(
     db_session.add(case)
     await db_session.commit()
     await _link_counter_case(db_session, harm_case=case, gate_lever=Gate.G4)
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     await _complete_encounter(
         app_client,
         db_session,
@@ -192,7 +187,7 @@ async def _build_three_encounter_session(app_client, db_session) -> str:
     values, not 3), while every gate differs (3 unique decision points).
     """
 
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
 
     case1 = _make_case("Case 1", main_path_pattern=Pattern.A, main_path_gate=Gate.G1)
     await _complete_encounter(
@@ -250,7 +245,7 @@ async def test_suggested_next_focus_reflects_the_counter_case_gate_lever(
 async def test_suggested_next_focus_omitted_when_no_counter_case_exists(
     app_client, db_session
 ):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     case = _make_case()
     await _complete_encounter(
         app_client, db_session, session_id, case, pattern=Pattern.A, gate=Gate.G1
@@ -265,7 +260,7 @@ async def test_has_completed_cases_false_before_reveal(app_client, db_session):
     case = _make_case()
     db_session.add(case)
     await db_session.commit()
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     encounter_id = await _select_case(app_client, session_id, case)
     await _commit_to(app_client, encounter_id, pattern=Pattern.A, gate=Gate.G1)
 
@@ -284,7 +279,7 @@ async def test_has_completed_cases_false_after_reveal_before_contrast(
     case = _make_case()
     db_session.add(case)
     await db_session.commit()
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     encounter_id = await _select_case(app_client, session_id, case)
     await _commit_to(app_client, encounter_id, pattern=Pattern.A, gate=Gate.G1)
     await _reveal(app_client, encounter_id)

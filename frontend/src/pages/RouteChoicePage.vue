@@ -27,7 +27,7 @@
                 unelevated
                 :label="t('routeChoiceStudentAction')"
                 :disable="choosing"
-                @click="chooseStudent"
+                to="/intake"
               />
             </q-card-actions>
           </q-card>
@@ -80,10 +80,6 @@ const researcherStore = useResearcherStore();
 const { errorMessage, report } = useErrorMessage();
 
 const choosing = ref(false);
-
-function chooseStudent(): void {
-  void router.push('/intake');
-}
 
 async function chooseResearcher() {
   choosing.value = true;

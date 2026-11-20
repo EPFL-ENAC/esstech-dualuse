@@ -1,4 +1,3 @@
-/** Typed client for the Researcher/Individual endpoints. */
 import { apiFetch, postJson } from 'boot/api';
 import type { CounterCaseResponse } from 'src/api/contrast';
 import type { ContrastType, Domain, Form, Function, Gate, Pattern } from 'src/api/taxonomy';

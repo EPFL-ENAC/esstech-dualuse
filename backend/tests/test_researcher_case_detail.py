@@ -22,12 +22,7 @@ from api.models.enums import (
     InclusionReason,
     Pattern,
 )
-
-
-async def _start_session(app_client) -> str:
-    response = await app_client.post("/sessions", json={"route": "researcher"})
-    assert response.status_code == 201
-    return response.json()["id"]
+from tests.helpers import start_session
 
 
 async def _map_intake(app_client, session_id: str) -> None:
@@ -125,7 +120,7 @@ async def _get_case_detail(app_client, session_id: str, case_id: UUID) -> dict:
 
 
 async def test_case_detail_409s_without_a_comparison_set(app_client):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
 
     response = await app_client.get(
         f"/sessions/{session_id}/researcher/cases/{uuid4()}"
@@ -138,7 +133,7 @@ async def test_case_detail_409s_without_a_comparison_set(app_client):
 async def test_case_detail_404s_for_a_case_not_in_the_comparison_set(
     app_client, db_session
 ):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _map_intake(app_client, session_id)
     in_set = _make_case("Case detail fixture: in set")
     not_in_set = _make_case("Case detail fixture: not in set")
@@ -161,7 +156,7 @@ async def test_pre_prediction_case_detail_hides_the_answer_key(app_client, db_se
         "full_narrative",
         "source_references",
     )
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _map_intake(app_client, session_id)
     case = _make_case("Case detail fixture: pre-prediction")
     await _build_comparison_set(db_session, session_id=session_id, cases=[case])
@@ -175,7 +170,7 @@ async def test_pre_prediction_case_detail_hides_the_answer_key(app_client, db_se
 async def test_case_detail_includes_all_fields_once_a_prediction_exists(
     app_client, db_session
 ):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client, route="researcher")
     await _map_intake(app_client, session_id)
     case = _make_case("Case detail fixture: post-prediction")
     await _build_comparison_set(

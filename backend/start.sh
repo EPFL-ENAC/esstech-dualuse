@@ -8,4 +8,4 @@
 alembic upgrade head
 python -m scripts.seed_cases || echo "WARNING: case seeding failed; serving the cases already in the database" >&2
 
-uvicorn --host=0.0.0.0 --timeout-keep-alive=0 api.main:app --reload
+uvicorn --host=0.0.0.0 --timeout-keep-alive=0 api.main:app

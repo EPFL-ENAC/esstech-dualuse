@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import type { CounterCaseInfo, CounterCaseResponse } from 'src/api/contrast';
 import type { ErrorState } from 'src/composables/useApiError';
 
-/** The store fields and setters the reveal → contrast sequence works on. */
 export interface RevealContrastStore<Reveal, Contrast> {
   readonly reveal: Reveal | null;
   readonly counterCase: CounterCaseResponse | null;
@@ -13,7 +12,6 @@ export interface RevealContrastStore<Reveal, Contrast> {
   setContrast(value: Contrast): void;
 }
 
-/** The three calls, each taking the id of what is being revealed. */
 export interface RevealContrastApi<Reveal, Contrast> {
   reveal(id: string): Promise<Reveal>;
   getCounterCase(id: string): Promise<CounterCaseResponse>;

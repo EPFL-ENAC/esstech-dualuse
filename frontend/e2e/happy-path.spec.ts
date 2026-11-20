@@ -62,10 +62,9 @@ async function chooseFromSelect(page: Page, label: string, optionText: RegExp): 
 test('a learner completes intake, commits to a case, and the reveal never changes', async ({
   page,
 }) => {
-  // --- route choice, then intake, through the real front door ---
   await page.goto('/');
   await page.getByRole('link', { name: 'Try the tool' }).click();
-  await page.getByRole('button', { name: 'Continue as a student' }).click();
+  await page.getByRole('link', { name: 'Continue as a student' }).click();
   await expect(page.getByText('Before you begin')).toBeVisible();
 
   await answerDiagnostic(page);
@@ -82,7 +81,6 @@ test('a learner completes intake, commits to a case, and the reveal never change
       hints.getByText(optionLabel(item, diagnosticKey[index]), { exact: true }),
     ).toBeVisible();
   }
-  // Submitted answers are locked.
   await expect(
     page.getByRole('radio', { name: DIAGNOSTIC_ITEMS[0]!.options[0]!.label, exact: true }),
   ).toBeDisabled();
@@ -97,7 +95,6 @@ test('a learner completes intake, commits to a case, and the reveal never change
     await page.getByRole('button', { name: 'Got it, continue' }).click();
   }
 
-  // --- comprehension check: an error teaches, but does not block ---
   await expect(comprehensionTitle).toBeVisible();
   const firstOption = COMPREHENSION_CHECK.options[0];
   expect(firstOption).toBeDefined();

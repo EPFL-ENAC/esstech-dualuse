@@ -14,14 +14,13 @@ from api.models.enums import (
     Pattern,
 )
 from api.services.contrast import find_counter_case_link
-from api.services.researcher import (
-    PredictionEntry,
+from api.services.researcher import PredictionEntry, get_pattern_distribution
+from api.services.researcher_queries import (
     attempts_remaining,
     comparison_case_ids,
     find_predictions,
     find_set_contrast_entry,
     find_technology_intake,
-    get_pattern_distribution,
     require_comparison_set,
 )
 

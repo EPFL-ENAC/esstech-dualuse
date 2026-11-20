@@ -15,9 +15,9 @@ from sqlmodel import select
 
 import api.services.auth as auth_service
 from api.config import config
-from api.dependencies import LEARNER_ID_COOKIE
+from api.cookies import AUTH_SESSION_COOKIE, LEARNER_ID_COOKIE
 from api.models import AuthIdentity, LearningIdentity, Session, User
-from api.services.auth import AUTH_SESSION_COOKIE, GoogleUserInfo, sign_session
+from api.services.auth import GoogleUserInfo, sign_session
 
 
 def _fake_exchange(sub: str = "google-subject-1", email: str = "learner@example.com"):

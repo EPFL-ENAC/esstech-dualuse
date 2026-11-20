@@ -7,6 +7,7 @@ Run after applying migrations:
 """
 
 import asyncio
+from typing import NamedTuple
 
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -22,51 +23,72 @@ from api.models import (
 from api.models.enums import CaseStatus, CaseType, Domain, Form, Function, Gate, Pattern
 
 
-async def _seed_case(
-    session: AsyncSession,
-    *,
-    title: str,
-    area: str,
-    domain: Domain,
-    case_type: CaseType,
-    narrative_until_crossroads: str,
-    full_narrative: str,
-    main_path_pattern: Pattern,
-    main_path_gate: Gate,
-    tagged_patterns: list[Pattern],
-    tagged_gates: list[Gate],
-    functions: list[Function],
-    forms: list[Form],
-    source_references: list[str],
-) -> Case:
+class CuratedCase(NamedTuple):
+    title: str
+    area: str
+    domain: Domain
+    case_type: CaseType
+    main_pattern: Pattern
+    main_gate: Gate
+    # Concatenated ids, e.g. "FGCD" and "G1G3".
+    pattern_ids: str
+    gate_ids: str
+    functions: list[Function]
+    forms: list[Form]
+    crossroads: str
+    reveal: str
+    references: list[str]
+    # Title of the provisional case this one replaced, archived on seeding.
+    legacy_title: str
+
+    @property
+    def tagged_patterns(self) -> list[Pattern]:
+        return [Pattern(value) for value in self.pattern_ids]
+
+    @property
+    def tagged_gates(self) -> list[Gate]:
+        return [Gate(self.gate_ids[i : i + 2]) for i in range(0, len(self.gate_ids), 2)]
+
+
+_SEEDED_FIELDS = (
+    "area",
+    "domain",
+    "case_type",
+    "status",
+    "narrative_until_crossroads",
+    "full_narrative",
+    "main_path_pattern",
+    "main_path_gate",
+    "forms",
+    "source_references",
+)
+
+
+async def _seed_case(session: AsyncSession, curated: CuratedCase) -> Case:
     """Upsert a published case by its authoritative title."""
-    existing = (await session.exec(select(Case).where(Case.title == title))).first()
-    case = existing or Case(
-        title=title,
-        area=area,
-        domain=domain,
-        case_type=case_type,
+    existing = (
+        await session.exec(select(Case).where(Case.title == curated.title))
+    ).first()
+    incoming = Case(
+        title=curated.title,
+        area=curated.area,
+        domain=curated.domain,
+        case_type=curated.case_type,
         status=CaseStatus.PUBLISHED,
-        narrative_until_crossroads=narrative_until_crossroads,
-        full_narrative=full_narrative,
-        main_path_pattern=main_path_pattern,
-        main_path_gate=main_path_gate,
-        forms=forms,
-        source_references=source_references,
+        narrative_until_crossroads=curated.crossroads,
+        full_narrative=curated.reveal,
+        main_path_pattern=curated.main_pattern,
+        main_path_gate=curated.main_gate,
+        forms=curated.forms,
+        source_references=curated.references,
     )
-    case.area = area
-    case.domain = domain
-    case.case_type = case_type
-    case.status = CaseStatus.PUBLISHED
-    case.narrative_until_crossroads = narrative_until_crossroads
-    case.full_narrative = full_narrative
-    case.main_path_pattern = main_path_pattern
-    case.main_path_gate = main_path_gate
-    case.forms = forms
-    case.source_references = source_references
     if existing is None:
+        case = incoming
         session.add(case)
     else:
+        case = existing
+        for field in _SEEDED_FIELDS:
+            setattr(case, field, getattr(incoming, field))
         for model in (CaseTaggedPattern, CaseTaggedGate, CaseTaggedFunction):
             old_tags = (
                 await session.exec(select(model).where(model.case_id == case.id))
@@ -75,13 +97,11 @@ async def _seed_case(
                 await session.delete(old_tag)
     await session.flush()
 
-    for pattern in tagged_patterns:
+    for pattern in curated.tagged_patterns:
         session.add(CaseTaggedPattern(case_id=case.id, pattern=pattern))
-
-    for gate in tagged_gates:
+    for gate in curated.tagged_gates:
         session.add(CaseTaggedGate(case_id=case.id, gate=gate))
-
-    for function in functions:
+    for function in curated.functions:
         session.add(CaseTaggedFunction(case_id=case.id, function=function))
 
     return case
@@ -123,10 +143,8 @@ async def _seed_counter_case_link(
 # The first listed pattern/gate is the provisional main path; every listed
 # pattern/gate is also tagged. Narratives and Function/Form facets remain
 # editorial drafts pending case-by-case review. Scores are never imported.
-# Each tuple is: title, area, domain, type, main pattern, main gate, all patterns,
-# all gates, functions, forms, crossroads, reveal, references, legacy title.
 CURATED_CASES = [
-    (
+    CuratedCase(
         "MIT Institute for Soldier Nanotechnologies (2002)",
         "protective nanomaterials",
         Domain.MATERIAL_SCIENCE,
@@ -145,7 +163,7 @@ CURATED_CASES = [
         ],
         "MIT Institute for Soldier Nanotechnologies",
     ),
-    (
+    CuratedCase(
         "Markforged — continuous-fibre 3D printing (MIT spin-out, 2013)",
         "additive manufacturing",
         Domain.MATERIAL_SCIENCE,
@@ -163,7 +181,7 @@ CURATED_CASES = [
         ],
         "Markforged continuous-fibre 3D printing",
     ),
-    (
+    CuratedCase(
         "University of Manchester — graphene body armour and military composites (2010)",
         "graphene materials",
         Domain.MATERIAL_SCIENCE,
@@ -182,7 +200,7 @@ CURATED_CASES = [
         ],
         "University of Manchester graphene composites",
     ),
-    (
+    CuratedCase(
         "NIEHS Nano GO Consortium — Interlaboratory Nanomaterial Toxicology (Bonner/NC State, 2013)",
         "nanomaterial safety",
         Domain.MATERIAL_SCIENCE,
@@ -201,7 +219,7 @@ CURATED_CASES = [
         ],
         "NIEHS Nano GO nanomaterial toxicology",
     ),
-    (
+    CuratedCase(
         "RepRap — open-source 3D printing (University of Bath, 2005)",
         "desktop fabrication",
         Domain.ADVANCED_MANUFACTURING,
@@ -217,7 +235,7 @@ CURATED_CASES = [
         ["RepRap project wiki — https://reprap.org/wiki/RepRap"],
         "RepRap open-source 3D printing",
     ),
-    (
+    CuratedCase(
         "Fraunhofer IAPT — laser metal deposition for defence (Hamburg, 2017)",
         "industrial metal printing",
         Domain.ADVANCED_MANUFACTURING,
@@ -233,7 +251,7 @@ CURATED_CASES = [
         ["Fraunhofer IAPT main page — https://www.iapt.fraunhofer.de/en.html"],
         "Fraunhofer IAPT metal additive manufacturing",
     ),
-    (
+    CuratedCase(
         "PRIF Risk Assessment of 3D Firearms (Peace Research Institute Frankfurt, 2017)",
         "fabrication governance",
         Domain.ADVANCED_MANUFACTURING,
@@ -251,7 +269,7 @@ CURATED_CASES = [
         ],
         "PRIF assessment of 3D-printed firearms",
     ),
-    (
+    CuratedCase(
         "EPFL LANES — 2D MoS₂ transistors (Andras Kis)",
         "semiconductor devices",
         Domain.SEMICONDUCTORS_NANOTECH,
@@ -270,7 +288,7 @@ CURATED_CASES = [
         ],
         "EPFL LANES two-dimensional MoS₂ transistors",
     ),
-    (
+    CuratedCase(
         "TU Eindhoven → ASML — the EUV academic pipeline",
         "semiconductor manufacturing",
         Domain.SEMICONDUCTORS_NANOTECH,
@@ -288,7 +306,7 @@ CURATED_CASES = [
         ],
         "TU Eindhoven–ASML EUV research pipeline",
     ),
-    (
+    CuratedCase(
         "Aerosolized Nanomaterial Toxicity (Positive Counter-case, EPA/Universities, 2010s)",
         "occupational nanomaterial safety",
         Domain.SEMICONDUCTORS_NANOTECH,
@@ -307,7 +325,7 @@ CURATED_CASES = [
         ],
         "Aerosolised nanomaterial safety research",
     ),
-    (
+    CuratedCase(
         "ImageNet — Fei-Fei Li (Princeton → Stanford, 2009)",
         "computer vision datasets",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -323,7 +341,7 @@ CURATED_CASES = [
         ["ImageNet CVPR 2009 paper — https://ieeexplore.ieee.org/document/5206848/"],
         "ImageNet dataset and benchmark",
     ),
-    (
+    CuratedCase(
         "Joseph Redmon / YOLO — academic withdrawal (University of Washington, 2020)",
         "real-time computer vision",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -339,7 +357,7 @@ CURATED_CASES = [
         ["Redmon et al. YOLO - CVPR 2016 — https://arxiv.org/abs/1506.02640"],
         "Joseph Redmon and YOLO object detection",
     ),
-    (
+    CuratedCase(
         "Project Maven — Google/DoD AI partnership controversy (2017–18)",
         "drone imagery analysis",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -357,7 +375,7 @@ CURATED_CASES = [
         ],
         "Project Maven AI partnership",
     ),
-    (
+    CuratedCase(
         "International AI Safety Report — Bengio et al. (Mila / Univ. Montréal, 2025–26)",
         "frontier AI governance",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -376,7 +394,7 @@ CURATED_CASES = [
         ],
         "International AI Safety Report",
     ),
-    (
+    CuratedCase(
         "EPFL MLO / SPRING — agent research in Lausanne",
         "agentic AI",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -392,7 +410,7 @@ CURATED_CASES = [
         ["EPFL MLO Lab — https://www.epfl.ch/labs/mlo/"],
         "Agentic language models and cybercrime adaptation",
     ),
-    (
+    CuratedCase(
         "Automated Cyber-Attack Agents (Various, 2025)",
         "agentic cybersecurity",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -408,7 +426,7 @@ CURATED_CASES = [
         ["Fang et al. arXiv 2404.08144 — https://arxiv.org/abs/2404.08144"],
         "Research on automated cyber-attack agents",
     ),
-    (
+    CuratedCase(
         "MegaSyn → VX-class toxins (Urbina et al., 2022)",
         "generative chemistry",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -426,7 +444,7 @@ CURATED_CASES = [
         ],
         "MegaSyn generative chemistry warning",
     ),
-    (
+    CuratedCase(
         "Universal and Transferable Adversarial Suffixes (CMU, 2023)",
         "AI security research",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -444,7 +462,7 @@ CURATED_CASES = [
         ],
         "Universal adversarial suffixes for language models",
     ),
-    (
+    CuratedCase(
         "Deepfake Generation via GANs (Various, 2014-Present)",
         "synthetic media",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -462,7 +480,7 @@ CURATED_CASES = [
         ],
         "Deepfake generation research",
     ),
-    (
+    CuratedCase(
         "Staged Release of GPT-2 (OpenAI, 2019)",
         "language-model release",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -480,7 +498,7 @@ CURATED_CASES = [
         ],
         "Staged release of GPT-2",
     ),
-    (
+    CuratedCase(
         "Ribeiro & West — Auditing YouTube radicalisation (EPFL dlab, FAT* 2020)",
         "recommender-system auditing",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -498,7 +516,7 @@ CURATED_CASES = [
         ],
         "Ribeiro and West audit of YouTube recommendations",
     ),
-    (
+    CuratedCase(
         "Aleksandr Kogan — 'thisisyourdigitallife' (University of Cambridge, 2014–15)",
         "social-data collection",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -516,7 +534,7 @@ CURATED_CASES = [
         ],
         "Aleksandr Kogan and thisisyourdigitallife",
     ),
-    (
+    CuratedCase(
         "Vosoughi, Roy & Aral — 'The spread of true and false news online' (MIT, Science 2018)",
         "misinformation research",
         Domain.ARTIFICIAL_INTELLIGENCE,
@@ -534,7 +552,7 @@ CURATED_CASES = [
         ],
         "Vosoughi, Roy and Aral on false-news diffusion",
     ),
-    (
+    CuratedCase(
         "Spectre & Meltdown — hardware side-channel disclosures (2018)",
         "hardware security",
         Domain.CYBER_TECHNOLOGIES,
@@ -550,7 +568,7 @@ CURATED_CASES = [
         ["Spectre & Meltdown attack details & timeline — https://meltdownattack.com/"],
         "Spectre and Meltdown coordinated disclosure",
     ),
-    (
+    CuratedCase(
         "DP-3T — privacy-preserving contact tracing (EPFL SPRING, 2020)",
         "privacy-preserving protocols",
         Domain.CYBER_TECHNOLOGIES,
@@ -568,7 +586,7 @@ CURATED_CASES = [
         ],
         "DP-3T privacy-preserving contact tracing",
     ),
-    (
+    CuratedCase(
         "Hospital Denial of Service Vulnerabilities (Various)",
         "healthcare cybersecurity",
         Domain.CYBER_TECHNOLOGIES,
@@ -586,7 +604,7 @@ CURATED_CASES = [
         ],
         "Hospital cybersecurity disclosure",
     ),
-    (
+    CuratedCase(
         "Wang & Kosinski — 'deep neural networks can detect sexual orientation from faces' (Stanford, 2018)",
         "sensitive biometric inference",
         Domain.CYBER_TECHNOLOGIES,
@@ -604,7 +622,7 @@ CURATED_CASES = [
         ],
         "Wang and Kosinski facial-orientation inference",
     ),
-    (
+    CuratedCase(
         "Uyghur-targeted face-recognition papers — academic-journal retractions (2018–21)",
         "ethnicity classification",
         Domain.CYBER_TECHNOLOGIES,
@@ -622,7 +640,7 @@ CURATED_CASES = [
         ],
         "Uyghur-targeted face-recognition papers",
     ),
-    (
+    CuratedCase(
         "Clearview AI (Origins in Academic Facial Recognition, 2010s)",
         "face-search systems",
         Domain.CYBER_TECHNOLOGIES,
@@ -640,7 +658,7 @@ CURATED_CASES = [
         ],
         "Clearview AI facial-recognition deployment",
     ),
-    (
+    CuratedCase(
         "Peter Shor — polynomial-time factoring on a quantum computer (AT&T Bell Labs, 1994)",
         "quantum computing",
         Domain.QUANTUM_TECHNOLOGY,
@@ -659,7 +677,7 @@ CURATED_CASES = [
         ],
         "Shor's quantum factoring algorithm",
     ),
-    (
+    CuratedCase(
         "Google Sycamore quantum supremacy paper (2019)",
         "quantum computing",
         Domain.QUANTUM_TECHNOLOGY,
@@ -677,7 +695,7 @@ CURATED_CASES = [
         ],
         "Google Sycamore quantum-computing paper",
     ),
-    (
+    CuratedCase(
         "Quantum Sensing for Stealth Detection (Various)",
         "quantum sensors",
         Domain.QUANTUM_TECHNOLOGY,
@@ -695,7 +713,7 @@ CURATED_CASES = [
         ],
         "Quantum sensing and stealth detection",
     ),
-    (
+    CuratedCase(
         "'Bugs in our Pockets' — academic cryptographers against client-side scanning (2021)",
         "client-side scanning",
         Domain.QUANTUM_TECHNOLOGY,
@@ -713,7 +731,7 @@ CURATED_CASES = [
         ],
         "Bugs in Our Pockets cryptography report",
     ),
-    (
+    CuratedCase(
         "Post-Quantum Cryptography Standardization (Positive Counter-case, NIST/Academia, 2016-Present)",
         "quantum-resistant cryptography",
         Domain.QUANTUM_TECHNOLOGY,
@@ -731,7 +749,7 @@ CURATED_CASES = [
         ],
         "Post-quantum cryptography standardisation",
     ),
-    (
+    CuratedCase(
         "EPFL LACAL: Cryptanalytic Attacks on RSA-768 (EPFL, 2010)",
         "cryptanalysis",
         Domain.QUANTUM_TECHNOLOGY,
@@ -750,7 +768,7 @@ CURATED_CASES = [
         ],
         "EPFL LACAL RSA-768 factorisation",
     ),
-    (
+    CuratedCase(
         "KAIST / Hanwha 'Research Center for the Convergence of National Defense and AI' (2018 boycott)",
         "military AI research",
         Domain.ROBOTICS_AUTONOMOUS,
@@ -768,7 +786,7 @@ CURATED_CASES = [
         ],
         "KAIST–Hanwha defence AI partnership",
     ),
-    (
+    CuratedCase(
         "UPenn GRASP Lab — autonomous drone swarms (Kumar lab, 2012)",
         "autonomous robotics",
         Domain.ROBOTICS_AUTONOMOUS,
@@ -784,7 +802,7 @@ CURATED_CASES = [
         ["Vijay Kumar / GRASP Lab — UPenn robotics — https://www.grasp.upenn.edu/"],
         "UPenn GRASP autonomous drone swarms",
     ),
-    (
+    CuratedCase(
         'Robotic "Dog" Weaponization (MIT Spin-off, 2020s)',
         "legged robotics",
         Domain.ROBOTICS_AUTONOMOUS,
@@ -802,7 +820,7 @@ CURATED_CASES = [
         ],
         "Weaponisation of quadruped robots",
     ),
-    (
+    CuratedCase(
         "Pledge Against Weaponizing Robotics (Positive Counter-case, 2022)",
         "robotics governance",
         Domain.ROBOTICS_AUTONOMOUS,
@@ -820,7 +838,7 @@ CURATED_CASES = [
         ],
         "Pledge against weaponising general-purpose robots",
     ),
-    (
+    CuratedCase(
         "EPFL NeuroRestore / ONWARD Medical",
         "neurotechnology translation",
         Domain.NEUROTECHNOLOGY,
@@ -839,7 +857,7 @@ CURATED_CASES = [
         ],
         "EPFL NeuroRestore and ONWARD Medical",
     ),
-    (
+    CuratedCase(
         "DARPA N3 academic grantees (2019)",
         "neural-interface research",
         Domain.NEUROTECHNOLOGY,
@@ -857,7 +875,7 @@ CURATED_CASES = [
         ],
         "DARPA N3 non-surgical neural-interface grants",
     ),
-    (
+    CuratedCase(
         "Rafael Yuste & the NeuroRights Initiative (Columbia University, 2017)",
         "neurotechnology governance",
         Domain.NEUROTECHNOLOGY,
@@ -876,7 +894,7 @@ CURATED_CASES = [
         ],
         "NeuroRights Initiative",
     ),
-    (
+    CuratedCase(
         "He Jiankui — CRISPR-edited twins (SUSTech, 2018)",
         "human genome editing",
         Domain.BIOCHEMISTRY,
@@ -895,7 +913,7 @@ CURATED_CASES = [
         ],
         "He Jiankui germline-editing experiment",
     ),
-    (
+    CuratedCase(
         "Horsepox synthesis (University of Alberta, 2017)",
         "synthetic biology disclosure",
         Domain.BIOCHEMISTRY,
@@ -913,7 +931,7 @@ CURATED_CASES = [
         ],
         "Horsepox synthesis and publication",
     ),
-    (
+    CuratedCase(
         "H5N1 gain-of-function (Erasmus MC / Wisconsin, 2011–12)",
         "influenza research governance",
         Domain.BIOCHEMISTRY,
@@ -971,50 +989,26 @@ COUNTER_CASE_PAIRS = [
 
 
 def _validate_curated_inventory() -> None:
-    if len(CURATED_CASES) != 45:
-        raise ValueError("The Shortlist must contain exactly 45 cases.")
-
-    titles = [case[0] for case in CURATED_CASES]
+    titles = [case.title for case in CURATED_CASES]
     if len(set(titles)) != len(titles):
         raise ValueError("Curated case titles must be unique.")
 
-    harm_count = sum(case[3] is CaseType.HARM for case in CURATED_CASES)
-    counter_count = sum(case[3] is CaseType.COUNTER_CASE for case in CURATED_CASES)
-    if (harm_count, counter_count) != (32, 13):
-        raise ValueError("Expected 32 harm cases and 13 counter-cases.")
-
-    by_title = {case[0]: case for case in CURATED_CASES}
+    by_title = {case.title: case for case in CURATED_CASES}
     for old_title, new_title in PREVIOUS_CURATED_TITLES.items():
         if old_title in by_title or new_title not in by_title:
             raise ValueError(f"Invalid curated title rename: {old_title}")
     for case in CURATED_CASES:
-        (
-            title,
-            _,
-            _,
-            _,
-            pattern,
-            gate,
-            pattern_ids,
-            gate_ids,
-            _,
-            _,
-            _,
-            _,
-            references,
-            _,
-        ) = case
-        if pattern.value not in pattern_ids:
-            raise ValueError(f"Main pattern is not tagged: {title}")
-        if gate.value not in [gate_ids[i : i + 2] for i in range(0, len(gate_ids), 2)]:
-            raise ValueError(f"Main gate is not tagged: {title}")
-        if not references:
-            raise ValueError(f"Missing source references: {title}")
+        if case.main_pattern not in case.tagged_patterns:
+            raise ValueError(f"Main pattern is not tagged: {case.title}")
+        if case.main_gate not in case.tagged_gates:
+            raise ValueError(f"Main gate is not tagged: {case.title}")
+        if not case.references:
+            raise ValueError(f"Missing source references: {case.title}")
 
     for harm_title, counter_title, _, _ in COUNTER_CASE_PAIRS:
-        if by_title[harm_title][3] is not CaseType.HARM:
+        if by_title[harm_title].case_type is not CaseType.HARM:
             raise ValueError(f"Invalid harm-case link: {harm_title}")
-        if by_title[counter_title][3] is not CaseType.COUNTER_CASE:
+        if by_title[counter_title].case_type is not CaseType.COUNTER_CASE:
             raise ValueError(f"Invalid counter-case link: {counter_title}")
 
 
@@ -1033,46 +1027,16 @@ async def seed() -> None:
                 demo_case.status = CaseStatus.REVIEWED
 
             curated_by_title: dict[str, Case] = {}
-            for (
-                title,
-                area,
-                domain,
-                case_type,
-                pattern,
-                gate,
-                pattern_ids,
-                gate_ids,
-                functions,
-                forms,
-                crossroads,
-                reveal,
-                references,
-                legacy_title,
-            ) in CURATED_CASES:
-                case = await _seed_case(
-                    session,
-                    title=title,
-                    area=area,
-                    domain=domain,
-                    case_type=case_type,
-                    narrative_until_crossroads=crossroads,
-                    full_narrative=reveal,
-                    main_path_pattern=pattern,
-                    main_path_gate=gate,
-                    tagged_patterns=[Pattern(value) for value in pattern_ids],
-                    tagged_gates=[
-                        Gate(gate_ids[i : i + 2]) for i in range(0, len(gate_ids), 2)
-                    ],
-                    functions=functions,
-                    forms=forms,
-                    source_references=references,
-                )
-                curated_by_title[title] = case
+            for curated in CURATED_CASES:
+                case = await _seed_case(session, curated)
+                curated_by_title[curated.title] = case
 
                 # Preserve provisional cases and their historical encounters.
                 # They must no longer appear in candidate or comparison sets.
                 legacy_case = (
-                    await session.exec(select(Case).where(Case.title == legacy_title))
+                    await session.exec(
+                        select(Case).where(Case.title == curated.legacy_title)
+                    )
                 ).first()
                 if legacy_case is not None:
                     legacy_case.status = CaseStatus.REVIEWED
@@ -1094,7 +1058,7 @@ async def seed() -> None:
             for renamed_case in renamed_cases:
                 renamed_case.status = CaseStatus.REVIEWED
 
-    print(f"Seeded {len(CURATED_CASES)} curated cases and archived demo fixtures.")
+    print(f"Seeded {len(CURATED_CASES)} curated cases.")
 
 
 if __name__ == "__main__":

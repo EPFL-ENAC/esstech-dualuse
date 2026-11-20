@@ -3,11 +3,9 @@ from fastapi.responses import RedirectResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.config import config
-from api.cookies import set_private_cookie
+from api.cookies import AUTH_SESSION_COOKIE, OAUTH_STATE_COOKIE, set_private_cookie
 from api.db import get_db_session
 from api.services.auth import (
-    AUTH_SESSION_COOKIE,
-    OAUTH_STATE_COOKIE,
     SESSION_COOKIE_MAX_AGE,
     STATE_COOKIE_MAX_AGE,
     build_google_authorize_url,

@@ -52,37 +52,23 @@
       </div>
 
       <div class="landing-paths__grid">
-        <router-link to="/start" class="landing-path-card landing-path-card--student">
+        <router-link
+          v-for="(path, index) in paths"
+          :key="path.key"
+          to="/start"
+          class="landing-path-card"
+        >
           <div class="landing-path-card__top">
-            <div class="landing-path-card__icon"><FeatherIcon name="student" /></div>
-            <span>01</span>
+            <div class="landing-path-card__icon"><FeatherIcon :name="path.icon" /></div>
+            <span>0{{ index + 1 }}</span>
           </div>
           <div class="landing-path-card__content">
-            <span>{{ t('landingStudentEyebrow') }}</span>
-            <h3>{{ t('landingStudentTitle') }}</h3>
-            <p>{{ t('landingStudentBody') }}</p>
+            <span>{{ t(`landing${path.key}Eyebrow`) }}</span>
+            <h3>{{ t(`landing${path.key}Title`) }}</h3>
+            <p>{{ t(`landing${path.key}Body`) }}</p>
             <div class="landing-path-card__features">
-              <span>{{ t('landingStudentFeatureOne') }}</span>
-              <span>{{ t('landingStudentFeatureTwo') }}</span>
-            </div>
-          </div>
-          <div class="landing-path-card__action">
-            {{ t('landingExploreRoute') }} <FeatherIcon name="arrow" />
-          </div>
-        </router-link>
-
-        <router-link to="/start" class="landing-path-card landing-path-card--researcher">
-          <div class="landing-path-card__top">
-            <div class="landing-path-card__icon"><FeatherIcon name="research" /></div>
-            <span>02</span>
-          </div>
-          <div class="landing-path-card__content">
-            <span>{{ t('landingResearcherEyebrow') }}</span>
-            <h3>{{ t('landingResearcherTitle') }}</h3>
-            <p>{{ t('landingResearcherBody') }}</p>
-            <div class="landing-path-card__features">
-              <span>{{ t('landingResearcherFeatureOne') }}</span>
-              <span>{{ t('landingResearcherFeatureTwo') }}</span>
+              <span>{{ t(`landing${path.key}FeatureOne`) }}</span>
+              <span>{{ t(`landing${path.key}FeatureTwo`) }}</span>
             </div>
           </div>
           <div class="landing-path-card__action">
@@ -137,10 +123,14 @@ const landingMeta = computed(() => [
   { icon: 'shield', label: t('landingMetaPrivacy') },
   { icon: 'thought', label: t('landingMetaNoScore') },
 ]);
+const paths = [
+  { key: 'Student', icon: 'student' },
+  { key: 'Researcher', icon: 'research' },
+];
 const steps = computed(() => [
   { icon: 'explore', title: t('landingStepOneTitle'), body: t('landingStepOneBody') },
   { icon: 'branch', title: t('landingStepTwoTitle'), body: t('landingStepTwoBody') },
-  { icon: 'idea', title: t('landingStepThreeTitle'), body: t('landingStepThreeBody') },
+  { icon: 'eye', title: t('landingStepThreeTitle'), body: t('landingStepThreeBody') },
 ]);
 </script>
 
@@ -178,7 +168,7 @@ const steps = computed(() => [
   align-self: end;
   justify-self: start;
   width: min(46rem, calc(100% - 2 * var(--gutter)));
-  margin: 0 0 var(--space-5) max(var(--gutter), calc((100vw - 77.5rem) / 2 + var(--gutter)));
+  margin: 0 0 var(--space-5) calc(var(--page-inset) + var(--gutter));
 }
 /* White title tab with a red action tab beside it, cut at an angle, over a
    translucent box: the "Visit EPFL" panel. */
@@ -233,12 +223,11 @@ const steps = computed(() => [
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-/* The 7x6 marker EPFL puts under the active navigation item. */
 .landing-kicker::before {
   content: '';
   flex: 0 0 auto;
-  width: 0.4375rem;
-  height: 0.375rem;
+  width: var(--marker-w);
+  height: var(--marker-h);
   background: var(--primary);
 }
 .landing-title {
@@ -294,10 +283,9 @@ const steps = computed(() => [
   height: 1.25em;
 }
 
-/* Sections */
 .landing-paths,
 .landing-section {
-  width: min(77.5rem, 100%);
+  width: min(var(--content-w), 100%);
   margin: 0 auto var(--space-6);
   padding: 0 var(--gutter);
 }
@@ -324,7 +312,6 @@ const steps = computed(() => [
   line-height: var(--lh-relaxed);
 }
 
-/* The two routes: flat cards, the border darkens on hover. */
 .landing-paths__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -417,7 +404,7 @@ const steps = computed(() => [
   background: var(--epfl-gray-100);
 }
 .landing-section__inner {
-  width: min(77.5rem, 100%);
+  width: min(var(--content-w), 100%);
   margin: 0 auto;
   padding: 0 var(--gutter);
 }
@@ -446,7 +433,7 @@ const steps = computed(() => [
 .landing-step__top h3 {
   margin: 0;
   font-size: var(--fs-h4);
-  font-weight: var(--w-regular, 400);
+  font-weight: var(--w-normal);
   line-height: var(--lh-snug);
 }
 .landing-step__top .feather-icon {
@@ -481,7 +468,7 @@ const steps = computed(() => [
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-4) var(--space-5);
-  padding: var(--space-5) max(var(--gutter), calc((100vw - 77.5rem) / 2 + var(--gutter)));
+  padding: var(--space-5) calc(var(--page-inset) + var(--gutter));
   background: var(--bg);
 }
 .landing-statement__mark {

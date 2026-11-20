@@ -8,6 +8,7 @@ export default {
   navStart: 'Commencer',
   navHow: 'Comment ça marche',
   footerExplore: 'Explorer',
+  footerPoweredBy: 'Réalisé avec',
   footerPurpose: 'Conçu pour la recherche et l’éducation responsables',
 
   landingKicker: 'Un outil de réflexion pour la science et la technologie',

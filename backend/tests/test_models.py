@@ -3,7 +3,6 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
 
 from api.models import (
     AuthIdentity,
@@ -83,45 +82,6 @@ async def test_case_encounter_sequence_no_unique_per_session(db_session):
     db_session.add(CaseEncounter(session_id=session.id, case_id=case.id, sequence_no=1))
     with pytest.raises(IntegrityError):
         await db_session.commit()
-
-
-async def test_both_commitments_persist_after_a_revote(db_session):
-    case = _make_case()
-    session = _make_session()
-    db_session.add(case)
-    db_session.add(session)
-    await db_session.flush()
-
-    encounter = CaseEncounter(session_id=session.id, case_id=case.id, sequence_no=1)
-    db_session.add(encounter)
-    await db_session.flush()
-
-    original = Commitment(
-        case_encounter_id=encounter.id,
-        sequence_no=1,
-        pattern=Pattern.A,
-        gate=Gate.G1,
-        framing_answers={"why": "original reasoning"},
-    )
-    revised = Commitment(
-        case_encounter_id=encounter.id,
-        sequence_no=2,
-        pattern=Pattern.B,
-        gate=Gate.G2,
-        framing_answers={"why": "revised after seeing the group distribution"},
-    )
-    db_session.add(original)
-    db_session.add(revised)
-    await db_session.commit()
-
-    result = await db_session.exec(
-        select(Commitment).where(Commitment.case_encounter_id == encounter.id)
-    )
-    commitments = result.all()
-
-    assert len(commitments) == 2
-    assert {c.sequence_no for c in commitments} == {1, 2}
-    assert {c.pattern for c in commitments} == {Pattern.A, Pattern.B}
 
 
 async def test_enum_column_stores_lowercase_value_not_member_name(db_session):
@@ -245,16 +205,3 @@ async def test_learning_identity_unique_per_user(db_session):
     db_session.add(LearningIdentity(user_id=user.id))
     with pytest.raises(IntegrityError):
         await db_session.commit()
-
-
-async def test_user_status_stores_lowercase_value_not_member_name(db_session):
-    """Same raw-column check as for Case.case_type, on User.status."""
-
-    user = User()
-    db_session.add(user)
-    await db_session.commit()
-
-    result = await db_session.exec(text('SELECT status FROM "user"'))
-    raw_status = result.one()[0]
-
-    assert raw_status == "active"

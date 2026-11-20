@@ -8,39 +8,13 @@ from uuid import UUID
 
 import pytest
 
-from api.models import Case, ComparisonSet, ComparisonSetCase, CounterCaseLink
+from api.models import ComparisonSet, ComparisonSetCase, CounterCaseLink
 from api.models.enums import (
-    CaseStatus,
     CaseType,
-    Domain,
     Gate,
     InclusionReason,
-    Pattern,
 )
-
-
-async def _start_session(app_client, *, route: str | None = None) -> str:
-    if route is None:
-        response = await app_client.post("/sessions")
-    else:
-        response = await app_client.post("/sessions", json={"route": route})
-    assert response.status_code == 201
-    return response.json()["id"]
-
-
-def _make_case(title: str, *, case_type: CaseType = CaseType.HARM) -> Case:
-    return Case(
-        title=title,
-        area="counter-case fixture",
-        domain=Domain.CYBER_TECHNOLOGIES,
-        case_type=case_type,
-        status=CaseStatus.PUBLISHED,
-        narrative_until_crossroads="x",
-        full_narrative="x",
-        main_path_pattern=Pattern.A,
-        main_path_gate=Gate.G1,
-        source_references=[],
-    )
+from tests.helpers import make_researcher_case, start_session
 
 
 async def _make_comparison_set(
@@ -105,7 +79,7 @@ RESEARCHER_ENDPOINTS = [
 async def test_researcher_endpoint_rejects_student_route_session(
     app_client, method, path_template, body
 ):
-    session_id = await _start_session(app_client)
+    session_id = await start_session(app_client)
     url = path_template.format(id=session_id)
 
     if method == "get":
@@ -127,7 +101,7 @@ async def test_post_sessions_defaults_to_student_route_with_no_body(app_client):
 
 
 async def test_post_sessions_accepts_explicit_researcher_route(app_client):
-    session_id = await _start_session(app_client, route="researcher")
+    session_id = await start_session(app_client, route="researcher")
 
     response = await app_client.post(
         f"/sessions/{session_id}/researcher/intake",
@@ -141,7 +115,7 @@ async def test_post_sessions_accepts_explicit_researcher_route(app_client):
 async def test_create_intake_retry_returns_stored_intake_without_overwriting(
     app_client,
 ):
-    session_id = await _start_session(app_client, route="researcher")
+    session_id = await start_session(app_client, route="researcher")
     first = await app_client.post(
         f"/sessions/{session_id}/researcher/intake",
         json={"raw_description": "the original description"},
@@ -162,7 +136,7 @@ async def test_create_intake_retry_returns_stored_intake_without_overwriting(
 
 
 async def test_get_intake_404s_before_any_intake_is_started(app_client):
-    session_id = await _start_session(app_client, route="researcher")
+    session_id = await start_session(app_client, route="researcher")
 
     response = await app_client.get(f"/sessions/{session_id}/researcher/intake")
 
@@ -171,7 +145,7 @@ async def test_get_intake_404s_before_any_intake_is_started(app_client):
 
 
 async def test_get_intake_returns_the_full_stored_state(app_client):
-    session_id = await _start_session(app_client, route="researcher")
+    session_id = await start_session(app_client, route="researcher")
     await app_client.post(
         f"/sessions/{session_id}/researcher/intake",
         json={"raw_description": "a quantum thing"},
@@ -198,7 +172,7 @@ async def test_get_intake_returns_the_full_stored_state(app_client):
 
 
 async def test_get_intake_before_any_tag_attempt_reports_full_budget(app_client):
-    session_id = await _start_session(app_client, route="researcher")
+    session_id = await start_session(app_client, route="researcher")
     await app_client.post(
         f"/sessions/{session_id}/researcher/intake",
         json={"raw_description": "a quantum thing"},
@@ -212,7 +186,7 @@ async def test_get_intake_before_any_tag_attempt_reports_full_budget(app_client)
 
 
 async def test_get_counter_case_409s_without_a_comparison_set(app_client):
-    session_id = await _start_session(app_client, route="researcher")
+    session_id = await start_session(app_client, route="researcher")
 
     response = await app_client.get(f"/sessions/{session_id}/researcher/counter-case")
 
@@ -223,8 +197,8 @@ async def test_get_counter_case_409s_without_a_comparison_set(app_client):
 async def test_get_counter_case_reports_no_counter_case_for_an_open_area_set(
     app_client, db_session
 ):
-    session_id = await _start_session(app_client, route="researcher")
-    harm_case = _make_case("Demo: open-area harm case")
+    session_id = await start_session(app_client, route="researcher")
+    harm_case = make_researcher_case("Demo: open-area harm case")
     db_session.add(harm_case)
     await db_session.flush()
     await db_session.commit()
@@ -239,9 +213,9 @@ async def test_get_counter_case_reports_no_counter_case_for_an_open_area_set(
 
 
 async def test_get_counter_case_reports_the_linked_counter_case(app_client, db_session):
-    session_id = await _start_session(app_client, route="researcher")
-    harm_case = _make_case("Demo: twin harm case")
-    counter_case = _make_case(
+    session_id = await start_session(app_client, route="researcher")
+    harm_case = make_researcher_case("Demo: twin harm case")
+    counter_case = make_researcher_case(
         "Demo: twin counter-case", case_type=CaseType.COUNTER_CASE
     )
     db_session.add(harm_case)

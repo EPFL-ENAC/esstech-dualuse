@@ -2,6 +2,10 @@ from fastapi import Response
 
 from api.config import config
 
+AUTH_SESSION_COOKIE = "auth_session"
+OAUTH_STATE_COOKIE = "oauth_state"
+LEARNER_ID_COOKIE = "dev_learner_id"
+
 
 def set_private_cookie(
     response: Response,

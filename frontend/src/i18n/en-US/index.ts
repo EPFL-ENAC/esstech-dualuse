@@ -8,6 +8,7 @@ export default {
   navStart: 'Start',
   navHow: 'How it works',
   footerExplore: 'Explore',
+  footerPoweredBy: 'Powered by',
   footerPurpose: 'Built for responsible research and education',
 
   landingKicker: 'A reflection tool for science and technology',

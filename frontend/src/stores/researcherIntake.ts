@@ -13,7 +13,6 @@ import type { Domain, Form, Function, Gate } from 'src/api/taxonomy';
 export type ResearcherIntakeStep =
   'description' | 'tagging' | 'exhausted' | 'gate-and-posture' | 'done';
 
-/** In-progress state for the Researcher intake -> tag -> gate-and-posture flow. */
 export const useResearcherIntakeStore = defineStore(
   'researcherIntake',
   () => {
@@ -58,7 +57,6 @@ export const useResearcherIntakeStore = defineStore(
       step.value = 'done';
     }
 
-    /** Rebuild the flow from stored server state after a reload. */
     function hydrate(state: TechnologyIntakeState): void {
       rawDescription.value = state.raw_description;
       domain.value = state.domain;

@@ -54,13 +54,13 @@
         </div>
 
         <div class="app-footer__partners-block">
-          <div class="app-footer__powered">Powered by</div>
+          <div class="app-footer__powered">{{ t('footerPoweredBy') }}</div>
           <img class="app-footer__partners" src="/epfl-unil-light.png" alt="EPFL and Unil" />
         </div>
       </div>
 
       <div class="app-footer__bottom">
-        <span>© 2026 Dark Mirror</span>
+        <span>© {{ new Date().getFullYear() }} Dark Mirror</span>
         <span>{{ t('footerPurpose') }}</span>
       </div>
     </footer>
@@ -78,7 +78,7 @@ const { t } = useI18n();
 const route = useRoute();
 
 const otherLocaleLabel = computed(() => LOCALE_NAMES[nextLocale.value]);
-const isLandingPage = computed(() => route.path === '/');
+const isLandingPage = computed(() => route.meta.landing === true);
 
 // On the landing page the header is glass over the video, then turns solid
 // white once the video has scrolled out from under it.

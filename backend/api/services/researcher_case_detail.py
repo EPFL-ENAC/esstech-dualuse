@@ -14,7 +14,7 @@ from api.models.enums import (
     Pattern,
 )
 from api.services.errors import NotFoundError
-from api.services.researcher import (
+from api.services.researcher_queries import (
     find_predictions,
     require_comparison_set,
 )

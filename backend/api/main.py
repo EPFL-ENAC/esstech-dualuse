@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from logging import INFO, basicConfig, warning
+from logging import INFO, basicConfig
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,12 +31,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(root_path=config.API_PATH, lifespan=lifespan)
 
-origins = [config.APP_URL] if config.APP_URL else []
-if not config.APP_URL:
-    warning(
-        "config.APP_URL is not set. CORS will not allow any origins. "
-        "Set config.APP_URL to enable cross-origin requests."
-    )
+origins = [config.APP_URL]
 
 # In addition to the configured URL, allow any local development origin
 # (localhost or 127.0.0.1 on any port), so the dev frontend works regardless

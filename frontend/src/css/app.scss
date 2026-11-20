@@ -5,6 +5,12 @@
 // on hover, a 2px outline for focus.
 
 :root {
+  --content-w: 77.5rem;
+  // The 7x6 red marker EPFL puts under the active navigation item.
+  --marker-w: 0.4375rem;
+  --marker-h: 0.375rem;
+  // Space either side of the centred content column, 0 on narrow screens.
+  --page-inset: max(0rem, calc((100vw - var(--content-w)) / 2));
   --app-flow-width: 56.25rem;
 }
 
@@ -16,14 +22,10 @@ html {
   background: var(--bg);
 }
 
-// ---------------------------------------------------------------- header
-
 .app-header {
   color: var(--fg);
   background: var(--bg);
   border-bottom: var(--border-w) solid var(--border-subtle);
-}
-.app-header {
   transition:
     background-color 0.25s ease,
     border-color 0.25s ease,
@@ -102,23 +104,20 @@ html {
 .app-nav__link:hover {
   color: var(--primary);
 }
-// The 7x6 red marker under the active item, as on epfl.ch.
 .app-nav__link.is-active::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 0.4375rem;
-  height: 0.375rem;
+  width: var(--marker-w);
+  height: var(--marker-h);
   background: var(--primary);
 }
-
-// ---------------------------------------------------------------- footer
 
 .app-footer {
   width: 100%;
   margin-top: var(--space-6);
-  padding: var(--space-5) max(var(--gutter), calc((100vw - 77.5rem) / 2)) var(--space-4);
+  padding: var(--space-5) max(var(--gutter), var(--page-inset)) var(--space-4);
   color: var(--fg-inverse);
   background: var(--bg-dark);
 }
@@ -190,8 +189,6 @@ html {
   font-size: var(--fs-xs);
 }
 
-// ----------------------------------------------------------------- pages
-
 .q-page:not(.landing-page) {
   padding: var(--space-5) var(--space-4) var(--space-6) !important;
 }
@@ -233,8 +230,6 @@ html {
   color: var(--epfl-green-text) !important;
 }
 
-// ----------------------------------------------------------------- cards
-
 .q-card {
   border: var(--border-w) solid var(--border);
   border-radius: var(--radius);
@@ -251,8 +246,6 @@ html {
   gap: var(--space-2);
   padding: 0.25rem var(--space-4) var(--space-4);
 }
-
-// --------------------------------------------------------------- buttons
 
 .q-btn {
   border-radius: var(--radius);
@@ -284,14 +277,10 @@ html {
   min-width: 8rem;
 }
 
-// ----------------------------------------------------------------- forms
-
 .q-field--outlined .q-field__control {
   border-radius: var(--radius);
   background: var(--bg);
 }
-
-// --------------------------------------------------- alerts, chips, tags
 
 .q-banner {
   border: var(--border-w) solid var(--border);

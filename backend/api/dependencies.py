@@ -3,20 +3,17 @@ from uuid import UUID, uuid4
 from fastapi import Depends, Request, Response
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.cookies import set_private_cookie
+from api.cookies import AUTH_SESSION_COOKIE, LEARNER_ID_COOKIE, set_private_cookie
 from api.db import get_db_session
 from api.models import CaseEncounter, Session
 from api.models.enums import SessionRoute
 from api.services.auth import (
-    AUTH_SESSION_COOKIE,
     SESSION_COOKIE_MAX_AGE,
     find_learning_identity,
     verify_session_cookie,
 )
 from api.services.encounters import get_owned_encounter
 from api.services.sessions import get_owned_session
-
-LEARNER_ID_COOKIE = "dev_learner_id"
 
 
 async def get_current_learner(
@@ -56,30 +53,24 @@ async def get_current_learner(
     return learner_id
 
 
-async def get_student_session(
-    session_id: UUID,
-    session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
-) -> Session:
-    return await get_owned_session(
-        session,
-        session_id=session_id,
-        learner_id=learner_id,
-        route=SessionRoute.STUDENT,
-    )
+def owned_session(route: SessionRoute):
+    """Dependency that loads the path's session, if this learner owns it and it
+    is on `route`; 404 otherwise."""
+
+    async def dependency(
+        session_id: UUID,
+        session: AsyncSession = Depends(get_db_session),
+        learner_id: UUID = Depends(get_current_learner),
+    ) -> Session:
+        return await get_owned_session(
+            session, session_id=session_id, learner_id=learner_id, route=route
+        )
+
+    return dependency
 
 
-async def get_researcher_session(
-    session_id: UUID,
-    session: AsyncSession = Depends(get_db_session),
-    learner_id: UUID = Depends(get_current_learner),
-) -> Session:
-    return await get_owned_session(
-        session,
-        session_id=session_id,
-        learner_id=learner_id,
-        route=SessionRoute.RESEARCHER,
-    )
+get_student_session = owned_session(SessionRoute.STUDENT)
+get_researcher_session = owned_session(SessionRoute.RESEARCHER)
 
 
 async def get_student_encounter(
